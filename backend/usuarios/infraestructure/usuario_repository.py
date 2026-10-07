@@ -1,5 +1,7 @@
 from sqlalchemy.orm import Session
-from backend.usuarios.domain.usuario import Estudiante, Profesor, Administrativo, Usuario
+from backend.usuarios.domain.usuario import (
+    Estudiante, Profesor, Administrativo, Usuario, EstadoUsuario
+)
 from backend.usuarios.infraestructure.models import (
     UsuarioModel,
     EstudianteModel,
@@ -12,6 +14,8 @@ from backend.usuarios.infraestructure.models import (
 class UsuarioRepository:
     def __init__(self, db: Session):
         self.db = db
+
+    # ---------- CREATE ----------
 
     def guardar(self, usuario_domain: Usuario):
         """Guarda un usuario en la base de datos según su tipo."""
@@ -59,16 +63,59 @@ class UsuarioRepository:
         self.db.refresh(db_usuario)
         return db_usuario
 
+    # ---------- READ ----------
+
     def obtener_por_correo(self, correo: str):
         return self.db.query(UsuarioModel).filter(
             UsuarioModel.correo_institucional == correo
         ).first()
 
     def obtener_por_id(self, id_usuario: int):
-        return self.db.query(UsuarioModel).filter(UsuarioModel.id == id_usuario).first()
+        return self.db.query(UsuarioModel).filter(
+            UsuarioModel.id == id_usuario
+        ).first()
 
     def listar_todos(self):
         return self.db.query(UsuarioModel).all()
+
+    # ---------- UPDATE ----------
+
+    def actualizar(self, id_usuario: int, datos: dict):
+        """Actualiza campos básicos del usuario (nombre, correo)."""
+        usuario = self.obtener_por_id(id_usuario)
+        if not usuario:
+            raise ValueError(f"Usuario con id {id_usuario} no encontrado")
+
+        if "nombre" in datos and datos["nombre"]:
+            usuario.nombre = datos["nombre"]
+        if "correo" in datos and datos["correo"]:
+            usuario.correo_institucional = datos["correo"]
+
+        self.db.commit()
+        self.db.refresh(usuario)
+        return usuario
+
+    def actualizar_estado(self, id_usuario: int, nuevo_estado: str):
+        """Cambia el estado del usuario."""
+        usuario = self.obtener_por_id(id_usuario)
+        if not usuario:
+            raise ValueError(f"Usuario con id {id_usuario} no encontrado")
+
+        usuario.estado = EstadoUsuario(nuevo_estado)
+        self.db.commit()
+        self.db.refresh(usuario)
+        return usuario
+
+    def actualizar_credibilidad(self, id_usuario: int, nuevo_valor: float):
+        """Actualiza la credibilidad del usuario."""
+        usuario = self.obtener_por_id(id_usuario)
+        if not usuario:
+            raise ValueError(f"Usuario con id {id_usuario} no encontrado")
+
+        usuario.credibilidad = nuevo_valor
+        self.db.commit()
+        self.db.refresh(usuario)
+        return usuario
 
     def asignar_rol(self, id_usuario: int, id_rol: int):
         """Asigna un rol a un usuario existente."""
@@ -84,6 +131,18 @@ class UsuarioRepository:
         self.db.commit()
         self.db.refresh(usuario)
         return usuario
+
+    # ---------- DELETE ----------
+
+    def eliminar(self, id_usuario: int):
+        """Elimina un usuario de la base de datos."""
+        usuario = self.obtener_por_id(id_usuario)
+        if not usuario:
+            raise ValueError(f"Usuario con id {id_usuario} no encontrado")
+
+        self.db.delete(usuario)
+        self.db.commit()
+        return {"id": id_usuario, "eliminado": True}
 
 
 class RolRepository:

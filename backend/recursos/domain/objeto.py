@@ -41,6 +41,7 @@ class Objeto :
 
     def dar_de_baja(self) -> bool:
         self.estado_disponibilidad = EstadoDeDisponibilidad.DADO_DE_BAJA
+        return True
 
 
 

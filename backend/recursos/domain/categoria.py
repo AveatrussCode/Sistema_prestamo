@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from backend.shared.errors import DomainError  # <-- faltaba este import
+
+from backend.shared.errors import DomainError
 
 
 @dataclass

@@ -12,6 +12,7 @@ class Penalizacion:
     monto: float
     fecha: date
     estado: EstadoPenalizacion
+    
 
     def aplicar(self):
         self.estado = EstadoPenalizacion.ACTIVA

@@ -18,6 +18,12 @@ class SolicitudPrestamo:
         return True
     
     def cancelar(self) -> bool:
-            self.estado = EstadoDeSolicitudPrestamo.CANCELADO
-            return True
+        self.estado = EstadoDeSolicitudPrestamo.CANCELADO
+        return True
+
+    def estaPendiente(self) -> bool:
+        self.estado = EstadoDeSolicitudPrestamo.CANCELADO
+        return True
+
+    
     

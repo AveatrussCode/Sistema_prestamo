@@ -1,6 +1,11 @@
+import { useState } from "react";
 import "./App.css";
+import ReservasPage from "./pages/reservas/ReservasPage";
+
 
 function App() {
+   const [pagina, setPagina] = useState("inicio");
+
   return (
     <div className="app">
       <aside className="sidebar">
@@ -30,10 +35,10 @@ function App() {
 
           <button className="nav-item">
             <span>▤</span>
-            Préstamos
+            Préstamoss
           </button>
 
-          <button className="nav-item">
+          <button className="nav-item" onClick={()=> setPagina("reservas")}>
             <span>◷</span>
             Reservas
           </button>
@@ -47,7 +52,10 @@ function App() {
         </div>
       </aside>
 
+    
       <main className="main">
+            
+
         <header className="topbar">
           <div>
             <h1>Dashboard</h1>

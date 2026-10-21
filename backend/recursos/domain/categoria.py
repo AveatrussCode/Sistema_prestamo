@@ -1,12 +1,15 @@
 from dataclasses import dataclass
 from typing import Optional
 
+from backend.shared.errors import DomainError
+
 
 @dataclass
 class Categoria:
-    id_categoria: int
     nombre: str
     descripcion: str = ""
+    id_categoria: Optional[int] = None     # None hasta que se guarde en la base de datos
+    activa: bool = True                    # permite activar() / desactivar() del diagrama
 
     def __post_init__(self):
         self._validar_nombre(self.nombre)
@@ -21,3 +24,8 @@ class Categoria:
         self.nombre = nombre.strip()
         self.descripcion = descripcion
 
+    def activar(self) -> None:
+        self.activa = True
+
+    def desactivar(self) -> None:
+        self.activa = False

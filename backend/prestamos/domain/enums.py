@@ -19,3 +19,9 @@ class EstadoDeSolicitudPrestamo(str, Enum):
     APROBADO = "aprobado"
     RECHAZADO = "rechazado"
     CANCELADO = "cancelado"
+
+
+class EstadoFisico(str, Enum):
+    BUENO = "Bueno"
+    REGULAR = "Regular"
+    DANADO = "Dañado"

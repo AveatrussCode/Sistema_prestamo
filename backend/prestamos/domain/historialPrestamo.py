@@ -1,20 +1,13 @@
 from dataclasses import dataclass, field
 from datetime import date
-from enum import Enum
 from typing import Optional
 
-
-class TipoEventoPrestamo(str, Enum):
-    """Qué pasó con el préstamo. Corresponde a las acciones de Prestamo en el diagrama."""
-    INICIADO = "INICIADO"       # Prestamo.iniciar()
-    RENOVADO = "RENOVADO"       # Prestamo.renovar()
-    DEVUELTO = "DEVUELTO"       # Prestamo.registrarDevolucion()
-    CANCELADO = "CANCELADO"     # Prestamo.cancelar()
-    VENCIDO = "VENCIDO"         # Prestamo.estaVencido() pasó a verdadero
+from backend.prestamos.domain.enums import TipoEventoPrestamo
 
 
 @dataclass(frozen=True)
 class HistorialPrestamo:
+    
     """UN registro del historial: un evento que ocurrió en un préstamo (RF15, RF16).
 
     Es inmutable (frozen): un historial no se edita ni se corrige, solo se agregan registros nuevos.

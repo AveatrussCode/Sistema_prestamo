@@ -25,3 +25,11 @@ class EstadoFisico(str, Enum):
     BUENO = "Bueno"
     REGULAR = "Regular"
     DANADO = "Dañado"
+
+class TipoEventoPrestamo(str, Enum):
+    """Qué pasó con el préstamo. Corresponde a las acciones de Prestamo en el diagrama."""
+    INICIADO = "INICIADO"       # Prestamo.iniciar()
+    RENOVADO = "RENOVADO"       # Prestamo.renovar()
+    DEVUELTO = "DEVUELTO"       # Prestamo.registrarDevolucion()
+    CANCELADO = "CANCELADO"     # Prestamo.cancelar()
+    VENCIDO = "VENCIDO"         # Prestamo.estaVencido() pasó a verdadero

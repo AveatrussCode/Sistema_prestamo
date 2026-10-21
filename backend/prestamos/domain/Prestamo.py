@@ -17,6 +17,12 @@ class Prestamo:
         self.estado = EstadoPrestamo.ACTIVO
         self.observaciones = observaciones
 
+    def iniciar():
+        #no entender
+    
+    
+    
+
     
 
 

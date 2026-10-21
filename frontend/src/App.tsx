@@ -1,10 +1,9 @@
 import { useState } from "react";
 import "./App.css";
-import ReservasPage from "./pages/reservas/ReservasPage";
 
 
 function App() {
-   const [pagina, setPagina] = useState("inicio");
+   const [, setPagina] = useState("inicio");
 
   return (
     <div className="app">

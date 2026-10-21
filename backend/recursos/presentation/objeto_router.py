@@ -7,8 +7,8 @@ from backend.recursos.application.objeto_service import ObjetoService
 from backend.recursos.domain.categoria import Categoria
 from backend.recursos.domain.enums import EstadoFisico
 from backend.recursos.domain.objeto import Objeto
-from backend.recursos.infraestructure.sql_categoria_repository import SqlCategoriaRepository
-from backend.recursos.infraestructure.sql_objeto_repository import SqlObjetoRepository
+from backend.recursos.infrastructure.sql_categoria_repository import SqlCategoriaRepository
+from backend.recursos.infrastructure.sql_objeto_repository import SqlObjetoRepository
 from backend.shared.errors import ConflictError
 
 router = APIRouter(prefix="/objetos", tags=["Objetos"])

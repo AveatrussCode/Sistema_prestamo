@@ -43,6 +43,7 @@ export default function ReservasPage() {
       setUsuarios(u);
       setObjetos(o);
       setReservas(r);
+      setError(null);
     } catch (e) {
       setError(mensajeDe(e));
     } finally {
@@ -133,7 +134,7 @@ export default function ReservasPage() {
           <p className="hint">
             {cargando
               ? "Cargando..."
-              : "Todavía no hay usuarios activos u objetos. Regístralos, o activa los datos de prueba con SEED_DEMO=true en el archivo .env y reinicia el backend."}
+              : "Para crear una reserva debe haber usuarios activos y equipos registrados."}
           </p>
         ) : (
           <form className="form-grid" onSubmit={enviar}>

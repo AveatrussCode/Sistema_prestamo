@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Date, Enum as SQLEnum, ForeignKey, Integer
 
 from backend.database import Base
-from backend.prestamos.domain.enums import EstadoReserva
+from backend.prestamos.domain.reserva import EstadoReserva
 
 
 class ReservaModel(Base):

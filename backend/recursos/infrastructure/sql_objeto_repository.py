@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from backend.recursos.domain.enums import EstadoDeDisponibilidad
 from backend.recursos.domain.objeto import Objeto
 from backend.recursos.domain.objeto_repository import ObjetoRepository
-from backend.recursos.infraestructure.models import ObjetoModel
+from backend.recursos.infrastructure.models import ObjetoModel
 from backend.shared.errors import NotFoundError
 
 

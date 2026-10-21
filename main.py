@@ -1,5 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from backend.shared.errors import DomainError
+from backend.recursos.infrastructure.models import CategoriaModel, ObjetoModel
+from backend.prestamos.infrastructure.models import ReservaModel
+from backend.recursos.presentation.objeto_router import router as objeto_router, categoria_router
+from backend.prestamos.presentation.reserva_routes import router as reserva_router
 
 from backend.database import engine, Base, SessionLocal
 
@@ -46,6 +52,14 @@ def inicializar_roles():
 # Rutas
 app.include_router(usuario_router)
 app.include_router(rol_router)
+app.include_router(objeto_router)
+app.include_router(categoria_router)
+app.include_router(reserva_router)
+
+
+@app.exception_handler(DomainError)
+async def domain_error_handler(request, exc):
+    return JSONResponse(status_code=exc.status_code, content={"detail": str(exc)})
 
 
 @app.get("/")

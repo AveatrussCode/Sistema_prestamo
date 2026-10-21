@@ -1,6 +1,9 @@
 
 
 
+from typing import Optional
+from backend.recursos.domain.objeto_repository import ObjetoRepository
+from backend.shared.errors import DomainError, NotFoundError
 from backend.recursos.domain.enums import EstadoFisico
 from backend.recursos.domain.objeto import Objeto
 

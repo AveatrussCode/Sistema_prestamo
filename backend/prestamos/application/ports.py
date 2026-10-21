@@ -1,6 +1,4 @@
-# backend/prestamos/application/ports.py
 from abc import ABC, abstractmethod
-from typing import Optional
 
 
 class UsuarioLookup(ABC):

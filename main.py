@@ -6,7 +6,7 @@ from backend.database import engine, Base, SessionLocal
 # Modelos ANTES de create_all
 from backend.usuarios.infraestructure.models import UsuarioModel, RolModel
 from backend.recursos.infraestructure.models import CategoriaModel, ObjetoModel
-from backend.prestamos.infraestructure.models import ReservaModel  # si ya existe
+from backend.prestamos.infraestructure.models import ReservaModel
 
 # Rutas
 from backend.usuarios.presentation.usuario_routes import router as usuario_router

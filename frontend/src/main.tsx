@@ -4,11 +4,12 @@ import './index.css'
 import App from './App.tsx'
 import { BrowserRouter } from 'react-router-dom'
 import ReservasPage from './pages/reservas/ReservasPage.tsx'
+import PrestamosPage from './pages/prestamos/PrestamoPage.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
-      <ReservasPage />
+      <PrestamosPage />
     </BrowserRouter>
   </StrictMode>,
 )

@@ -1,29 +1,42 @@
 
+from backend.prestamos.domain.enums import EstadoPrestamo
 
+@dataclass
 class Prestamo:
-
     id_prestamo: int
+    id_usuario: int
+    id_objeto: int
     fecha_inicio: date
     fecha_devolucion_prevista: date
-    estado: str
-    observaciones: str
+    fecha_devolucion_real: date | None = None
+    estado: EstadoPrestamo = EstadoPrestamo.ACTIVO
 
-    #funcioens
+    def esta_vencido(self) -> bool:
+        return (
+            self.estado == EstadoPrestamo.ACTIVO
+            and date.today() > self.fecha_devolucion_prevista
+        )
 
-    def __init__(self, id_prestamo: int, fecha_inicio: date, fecha_devolucion_prevista: date, observaciones: str = ""):
-        self.id_prestamo = id_prestamo
-        self.fecha_inicio = fecha_inicio
-        self.fecha_devolucion_prevista = fecha_devolucion_prevista
-        self.estado = EstadoPrestamo.ACTIVO
-        self.observaciones = observaciones
+    def registrar_devolucion(self, fecha: date | None = None):
+        if self.estado != EstadoPrestamo.ACTIVO:
+            raise ValueError("El préstamo no está activo")
 
-    def iniciar():
-        #no entender
-    
-    
-    
+        fecha = fecha or date.today()
+        self.fecha_devolucion_real = fecha
+        self.estado = EstadoPrestamo.DEVUELTO
 
-    
+    def cancelar(self):
+        if self.estado != EstadoPrestamo.ACTIVO:
+            raise ValueError("Solo se puede cancelar un préstamo activo")
+
+        self.estado = EstadoPrestamo.CANCELADO
+
+    def puede_renovarse(self) -> bool:
+        return (
+            self.estado == EstadoPrestamo.ACTIVO
+            and not self.esta_vencido()
+        )
+
 
 
 

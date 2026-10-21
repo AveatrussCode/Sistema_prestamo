@@ -7,8 +7,8 @@ from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.prestamos.application.reserva_service import ReservaService
 from backend.prestamos.domain.reserva import EstadoReserva, Reserva
-from backend.prestamos.infrastructure.sql_reserva_repository import SqlReservaRepository
-from backend.recursos.infrastructure.sql_objeto_repository import SqlObjetoRepository
+from backend.prestamos.infraestructure.sql_reserva_repository import SqlReservaRepository
+from backend.recursos.infraestructure.sql_objeto_repository import SqlObjetoRepository
 from backend.usuarios.infraestructure.usuario_repository import UsuarioRepository
 
 router = APIRouter(prefix="/reservas", tags=["Reservas"])

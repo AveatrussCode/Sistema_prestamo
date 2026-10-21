@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from backend.prestamos.domain.reserva import ESTADOS_ACTIVOS, EstadoReserva, Reserva
 from backend.prestamos.domain.reserva_repository import ReservaRepository
-from backend.prestamos.infrastructure.models import ReservaModel
+from backend.prestamos.infraestructure.models import ReservaModel
 from backend.shared.errors import NotFoundError
 
 

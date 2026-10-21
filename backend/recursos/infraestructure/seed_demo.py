@@ -1,7 +1,7 @@
 """Datos de prueba. Se ejecuta solo si el archivo .env tiene SEED_DEMO=true (ver main.py)."""
 from sqlalchemy.orm import Session
 
-from backend.recursos.infrastructure.models import CategoriaModel, ObjetoModel
+from backend.recursos.infraestructure.models import CategoriaModel, ObjetoModel
 from backend.usuarios.domain.usuario import EstadoUsuario
 from backend.usuarios.infraestructure.models import (
     AdministrativoModel, EstudianteModel, UsuarioModel,

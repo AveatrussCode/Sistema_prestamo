@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from backend.recursos.domain.categoria import Categoria
 from backend.recursos.domain.categoria_repository import CategoriaRepository
-from backend.recursos.infrastructure.models import CategoriaModel
+from backend.recursos.infraestructure.models import CategoriaModel
 from backend.shared.errors import NotFoundError
 
 

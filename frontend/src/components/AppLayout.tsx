@@ -26,10 +26,12 @@ export default function AppLayout() {
             Usuarios
           </button>
 
-          <button className="nav-item" type="button">
+          <NavLink to="/catalogo" className={({ isActive }) =>
+            `nav-item ${isActive ? "active" : ""}`
+          }>
             <span>▣</span>
             Objetos
-          </button>
+          </NavLink>
 
           <button className="nav-item" type="button">
             <span>▤</span>

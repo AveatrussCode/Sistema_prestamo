@@ -1,62 +1,42 @@
-
+from dataclasses import dataclass
+from typing import Optional
 
 from backend.recursos.domain.enums import EstadoDeDisponibilidad, EstadoFisico
-class Objeto :
+from backend.shared.errors import DomainError
 
+
+@dataclass
+class Objeto:
     nombre: str
-    descripcion:str
+    descripcion: str
     categoria_id: int
-    estado_disponibilidad: str
-    estado_fisico: str
+    id: Optional[int] = None
+    estado_disponibilidad: EstadoDeDisponibilidad = EstadoDeDisponibilidad.DISPONIBLE
+    estado_fisico: EstadoFisico = EstadoFisico.BUENO
 
-    #funciones
-    def __init__(self,nombre: str,descripcion: str,categoria_id: int):
-        self.nombre = nombre
-        self.descripcion = descripcion
-        self.categoria_id = categoria_id
-        self.estado_disponibilidad = EstadoDeDisponibilidad.DISPONIBLE
-        self.estado_fisico = EstadoFisico.BUENO
+    def __post_init__(self):
+        if not self.nombre or not self.nombre.strip():
+            raise DomainError("El objeto debe tener nombre.")
+        if not self.categoria_id:
+            raise DomainError("El objeto debe tener categoría.")
 
     def esta_disponible(self) -> bool:
         return self.estado_disponibilidad == EstadoDeDisponibilidad.DISPONIBLE
 
     def esta_operativo(self) -> bool:
         return self.estado_fisico != EstadoFisico.DANHADO
-    
-    def marcar_disponible(self)-> bool:
+
+    def marcar_disponible(self) -> None:
         self.estado_disponibilidad = EstadoDeDisponibilidad.DISPONIBLE
-        return True
 
-    def marcar_prestado(self)-> bool:
+    def marcar_prestado(self) -> None:
         self.estado_disponibilidad = EstadoDeDisponibilidad.PRESTADO
-        return True
-    
-    def marcar_reservado(self) -> bool:
+
+    def marcar_reservado(self) -> None:
         self.estado_disponibilidad = EstadoDeDisponibilidad.RESERVADO
-        return True
-    
-    def marcar_no_disponible(self) -> bool:
+
+    def marcar_no_disponible(self) -> None:
         self.estado_disponibilidad = EstadoDeDisponibilidad.NO_DISPONIBLE
-        return True
 
-    def dar_de_baja(self) -> bool:
+    def dar_de_baja(self) -> None:
         self.estado_disponibilidad = EstadoDeDisponibilidad.DADO_DE_BAJA
-        return True
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

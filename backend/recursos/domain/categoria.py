@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional
+from backend.shared.errors import DomainError  # <-- faltaba este import
 
 
 @dataclass
@@ -20,4 +20,3 @@ class Categoria:
         self._validar_nombre(nombre)
         self.nombre = nombre.strip()
         self.descripcion = descripcion
-

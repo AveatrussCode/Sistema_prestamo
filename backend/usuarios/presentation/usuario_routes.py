@@ -1,8 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
+from typing import Literal
+from sqlalchemy.exc import IntegrityError
+from backend.usuarios.presentation.auth_routes import RegistroRequest, hash_password
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
+from backend.usuarios.presentation.matricula_routes import constancia_path
 from backend.usuarios.application.registrar_usuario import RegistrarUsuarioUseCase
 from backend.usuarios.application.asignar_rol import AsignarRolUseCase
 from backend.usuarios.application.gestionar_perfil import (
@@ -20,11 +24,8 @@ router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
 
 # ---------- Esquemas Pydantic ----------
 
-class UsuarioCreate(BaseModel):
-    nombre: str
-    correo: str
-    codigo: str
-    tipo: str  # "Estudiante" | "Profesor" | "Administrativo"
+class UsuarioCreate(RegistroRequest):
+    tipo: Literal['Estudiante', 'Profesor', 'Administrativo']
     carrera: str | None = None
     matricula: str | None = None
     departamento: str | None = None
@@ -66,7 +67,9 @@ def crear_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
     caso_uso = RegistrarUsuarioUseCase(repo, rol_repo)
 
     try:
-        resultado = caso_uso.ejecutar(usuario.model_dump())
+        datos = usuario.model_dump(exclude={'password'})
+        datos['password_hash'] = hash_password(usuario.password)
+        resultado = caso_uso.ejecutar(datos)
         return {
             "mensaje": "Usuario creado exitosamente",
             "id": resultado.id,
@@ -74,6 +77,9 @@ def crear_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
             "tipo": resultado.tipo,
             "rol_id": resultado.rol_id,
         }
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail='El correo o código institucional ya está registrado.')
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -103,6 +109,7 @@ def listar_usuarios(
             "estado": u.estado.value if u.estado else None,
             "credibilidad": u.credibilidad,
             "rol": u.rol.nombre if u.rol else None,
+            "constancia_matricula": u.tipo == "estudiante" and constancia_path(u.id).is_file(),
         }
         for u in usuarios
     ]
@@ -189,6 +196,7 @@ def eliminar_usuario(id_usuario: int, db: Session = Depends(get_db)):
 
     try:
         resultado = caso_uso.eliminar_usuario(id_usuario)
+        constancia_path(id_usuario).unlink(missing_ok=True)
         return {
             "mensaje": "Usuario eliminado exitosamente",
             **resultado,

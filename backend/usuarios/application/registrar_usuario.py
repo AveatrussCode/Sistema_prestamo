@@ -70,7 +70,7 @@ class RegistrarUsuarioUseCase:
         else:
             raise ValueError("Tipo de usuario no válido. Debe ser: Estudiante, Profesor o Administrativo")
 
-        return self.usuario_repository.guardar(nuevo_usuario)
+        return self.usuario_repository.guardar(nuevo_usuario, password_hash=datos_usuario.get('password_hash'))
 
     def _obtener_rol_por_defecto(self, tipo: str) -> int:
         """Obtiene el ID del rol por defecto según el tipo de usuario."""

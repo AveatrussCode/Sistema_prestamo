@@ -1,45 +1,51 @@
-"""Datos de prueba. Se ejecuta solo si el archivo .env tiene SEED_DEMO=true (ver main.py)."""
+﻿"""Carga datos de catálogo sin modificar registros existentes.
+Ejecutar: python -m backend.recursos.infraestructure.seed_demo
+"""
 from sqlalchemy.orm import Session
-
+from backend.database import SessionLocal
 from backend.recursos.infraestructure.models import CategoriaModel, ObjetoModel
-from backend.usuarios.domain.usuario import EstadoUsuario
-from backend.usuarios.infraestructure.models import (
-    AdministrativoModel, EstudianteModel, UsuarioModel,
-)
+from backend.recursos.domain.enums import EstadoDeDisponibilidad, EstadoFisico
 
+CATEGORIAS = {
+    'Laptops': 'Equipos portátiles',
+    'Proyectores': 'Presentaciones multimedia',
+    'Electrónica': 'Kits de aprendizaje',
+    'Cámaras web': 'Videoconferencias',
+}
+EQUIPOS = [
+    ('Laptop Dell Latitude 5420', 'Core i5, 16 GB RAM, SSD 512 GB', 'Laptops', False),
+    ('Laptop Lenovo ThinkPad E14', 'Ryzen 5, 16 GB RAM, SSD 256 GB', 'Laptops', False),
+    ('Proyector Epson PowerLite', 'Proyector multimedia con conexión HDMI', 'Proyectores', False),
+    ('Kit Arduino Uno', 'Placa, cable USB, protoboard y sensores', 'Electrónica', False),
+    ('Cámara web Logitech C920', 'Videoconferencias Full HD con micrófono', 'Cámaras web', False),
+    ('Proyector Epson de revisión', 'Pendiente de revisión técnica', 'Proyectores', True),
+]
 
-def seed_demo(db: Session) -> None:
-    if db.query(UsuarioModel).count() == 0:
-        db.add_all([
-            EstudianteModel(nombre="Ana Torres", correo_institucional="ana.torres@univ.edu",
-                            codigo_institucional="E001", credibilidad=100.0,
-                            estado=EstadoUsuario.ACTIVO, carrera="Sistemas",
-                            matricula="2024001", tipo="estudiante"),
-            AdministrativoModel(nombre="Luis Rojas", correo_institucional="luis.rojas@univ.edu",
-                                codigo_institucional="A001", credibilidad=100.0,
-                                estado=EstadoUsuario.ACTIVO, area="Biblioteca",
-                                cargo="Encargado", tipo="administrativo"),
-        ])
-        db.commit()
-
-    if db.query(CategoriaModel).count() == 0:
-        db.add_all([
-            CategoriaModel(nombre="Laptops", descripcion="Equipos portátiles"),
-            CategoriaModel(nombre="Libros", descripcion="Material bibliográfico"),
-            CategoriaModel(nombre="Proyectores", descripcion="Proyectores multimedia"),
-        ])
-        db.commit()
-
-    if db.query(ObjetoModel).count() == 0:
+def seed_demo(db: Session) -> dict:
+    """Agrega faltantes por nombre; conserva estados y datos existentes."""
+    creados = {'categorias': 0, 'objetos': 0}
+    try:
+        for nombre, descripcion in CATEGORIAS.items():
+            if not db.query(CategoriaModel).filter_by(nombre=nombre).first():
+                db.add(CategoriaModel(nombre=nombre, descripcion=descripcion))
+                creados['categorias'] += 1
+        db.flush()
         categorias = {c.nombre: c.id for c in db.query(CategoriaModel).all()}
-        db.add_all([
-            ObjetoModel(nombre="Laptop Lenovo 01", descripcion="i5, 8 GB RAM",
-                        categoria_id=categorias["Laptops"]),
-            ObjetoModel(nombre="Laptop Lenovo 02", descripcion="i5, 8 GB RAM",
-                        categoria_id=categorias["Laptops"]),
-            ObjetoModel(nombre="Clean Code", descripcion="Robert C. Martin",
-                        categoria_id=categorias["Libros"]),
-            ObjetoModel(nombre="Proyector Epson", descripcion="HDMI + VGA",
-                        categoria_id=categorias["Proyectores"]),
-        ])
+        for nombre, descripcion, categoria, revision in EQUIPOS:
+            if db.query(ObjetoModel).filter_by(nombre=nombre).first():
+                continue
+            db.add(ObjetoModel(
+                nombre=nombre, descripcion=descripcion, categoria_id=categorias[categoria],
+                estado_disponibilidad=EstadoDeDisponibilidad.NO_DISPONIBLE if revision else EstadoDeDisponibilidad.DISPONIBLE,
+                estado_fisico=EstadoFisico.REGULAR if revision else EstadoFisico.BUENO,
+            ))
+            creados['objetos'] += 1
         db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    return creados
+
+if __name__ == '__main__':
+    with SessionLocal() as db:
+        print('Registros creados:', seed_demo(db))

@@ -4,6 +4,8 @@ __pycache__/
 .venv/
 venv/
 *.db
+uploads/
+artifacts/*.png
 
 # Variables de entorno
 .env

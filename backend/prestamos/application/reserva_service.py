@@ -67,6 +67,14 @@ class ReservaService:
 
     def confirmar(self, id_reserva: int) -> Reserva:
         reserva = self.obtener(id_reserva)
+        if reserva.esta_vencida():
+            raise DomainError('La reserva ya venció; no se puede confirmar.')
+        usuario = self._usuarios.obtener_por_id(reserva.usuario_id)
+        if usuario is None or usuario.estado != EstadoUsuario.ACTIVO:
+            raise DomainError('El usuario ya no está activo; no se puede confirmar la reserva.')
+        objeto = self._objetos.buscar_por_id(reserva.objeto_id)
+        if objeto is None or not objeto.es_reservable():
+            raise DomainError('El equipo ya no está disponible o está dañado; no se puede confirmar.')
         reserva.confirmar()
         return self._reservas.guardar(reserva)
 

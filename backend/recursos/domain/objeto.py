@@ -26,6 +26,9 @@ class Objeto:
     def esta_operativo(self) -> bool:
         return self.estado_fisico != EstadoFisico.DANHADO
 
+    def es_reservable(self) -> bool:
+        return self.esta_disponible() and self.esta_operativo()
+
     def marcar_disponible(self) -> None:
         self.estado_disponibilidad = EstadoDeDisponibilidad.DISPONIBLE
 

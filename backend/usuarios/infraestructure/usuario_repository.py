@@ -17,7 +17,7 @@ class UsuarioRepository:
 
     # ---------- CREATE ----------
 
-    def guardar(self, usuario_domain: Usuario):
+    def guardar(self, usuario_domain: Usuario, password_hash: str | None = None):
         """Guarda un usuario en la base de datos según su tipo."""
         if isinstance(usuario_domain, Estudiante):
             db_usuario = EstudianteModel(
@@ -59,6 +59,10 @@ class UsuarioRepository:
             raise ValueError("Tipo de usuario no soportado por el repositorio")
 
         self.db.add(db_usuario)
+        if password_hash:
+            from backend.usuarios.presentation.auth_routes import CuentaModel
+            self.db.flush()
+            self.db.add(CuentaModel(usuario_id=db_usuario.id, password_hash=password_hash))
         self.db.commit()
         self.db.refresh(db_usuario)
         return db_usuario
@@ -140,6 +144,9 @@ class UsuarioRepository:
         if not usuario:
             raise ValueError(f"Usuario con id {id_usuario} no encontrado")
 
+        from backend.usuarios.presentation.auth_routes import CuentaModel, SesionModel
+        self.db.query(SesionModel).filter(SesionModel.usuario_id == id_usuario).delete()
+        self.db.query(CuentaModel).filter(CuentaModel.usuario_id == id_usuario).delete()
         self.db.delete(usuario)
         self.db.commit()
         return {"id": id_usuario, "eliminado": True}

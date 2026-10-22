@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Enum as SQLEnum
+from sqlalchemy import Boolean, Column, Integer, String, Enum as SQLEnum
 from backend.database import Base
 from backend.recursos.domain.enums import EstadoDeDisponibilidad, EstadoFisico
 
@@ -8,6 +8,7 @@ class CategoriaModel(Base):
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String, unique=True, nullable=False)
     descripcion = Column(String, default="")
+    activa = Column(Boolean, nullable=False, default=True, server_default="1")
 
 
 class ObjetoModel(Base):

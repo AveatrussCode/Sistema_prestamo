@@ -31,3 +31,4 @@
 .story-demo{background:linear-gradient(120deg,#b1e95b,#9cd735);box-shadow:0 5px 20px #83b63116}
 @keyframes integrated-glow{from{transform:translate(0,-55px);opacity:.5}to{transform:translate(-20px,110px);opacity:1}}
 @media(prefers-reduced-motion:reduce){.login-story::before{animation:none}}
+.login-access-types{display:flex;justify-content:center;flex-wrap:wrap;gap:7px;margin:22px 0 14px}.login-access-types span{border:1px solid #a4e51c40;border-radius:20px;padding:7px 10px;font-size:10px;background:#a4e51c0c;color:#d7e9bc}.login-submit:disabled{opacity:.6;cursor:wait}

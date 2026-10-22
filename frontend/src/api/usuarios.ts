@@ -1,6 +1,7 @@
 import { api } from "./client";
 
 export interface Usuario {
+  constancia_matricula?: boolean;
   id: number;
   nombre: string;
   correo: string;

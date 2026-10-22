@@ -42,3 +42,7 @@ export const listarObjetos = (filtros: FiltrosObjetos = {}) => {
 };
 
 export const listarCategorias = () => api<Categoria[]>("/categorias/");
+export type DatosObjeto = Omit<Objeto, 'id'>;
+export const crearObjeto = (body: DatosObjeto) => api<Objeto>('/objetos/', { method: 'POST', body });
+export const editarObjeto = (id: number, body: DatosObjeto) => api<Objeto>(`/objetos/${id}`, { method: 'PUT', body });
+export const crearCategoria = (nombre: string) => api<Categoria>('/categorias/', { method: 'POST', body: { nombre } });

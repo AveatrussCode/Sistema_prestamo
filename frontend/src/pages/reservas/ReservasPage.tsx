@@ -1,247 +1,98 @@
-import { useCallback, useEffect, useState } from "react";
-import type { FormEvent } from "react";
-import { listarObjetos } from "../../api/objetos";
-import type { Objeto } from "../../api/objetos";
-import { listarUsuarios } from "../../api/usuarios";
-import type { Usuario } from "../../api/usuarios";
-import { cambiarEstadoReserva, crearReserva, listarReservas, procesarVencidas } from "../../api/reservas";
-import type { AccionReserva, Reserva } from "../../api/reservas";
-import "./reservas.css";
+import type { SessionUser } from '../../api/auth'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { FormEvent } from 'react'
+import { listarObjetos } from '../../api/objetos'
+import type { Objeto } from '../../api/objetos'
+import { listarUsuarios } from '../../api/usuarios'
+import type { Usuario } from '../../api/usuarios'
+import { cambiarEstadoReserva, crearReserva, listarReservas, procesarVencidas } from '../../api/reservas'
+import type { AccionReserva, EstadoReserva, Reserva } from '../../api/reservas'
+import './reservas.css'
 
-const mensajeDe = (e: unknown) => (e instanceof Error ? e.message : "Ocurrió un error desconocido");
+const message = (e: unknown) => e instanceof Error ? e.message : 'No se pudo completar la operación.'
+const formatDate = (date: string) => date.split('-').reverse().join('/')
+const today = () => new Date().toLocaleDateString('sv-SE')
+const labels: Record<EstadoReserva, string> = { PENDIENTE: 'Pendiente', CONFIRMADA: 'Confirmada', CANCELADA: 'Cancelada', FINALIZADA: 'Finalizada', VENCIDA: 'Vencida' }
+const canReserve = (o: Objeto) => o.estado_disponibilidad === 'DISPONIBLE' && o.estado_fisico !== 'DANHADO'
 
-// "2026-11-03" -> "03/11/2026". Se separa el texto a mano (NO con new Date) para evitar
-// el clásico bug de zona horaria que muestra el día anterior.
-const formatear = (fecha: string) => {
-  const [anio, mes, dia] = fecha.split("-");
-  return `${dia}/${mes}/${anio}`;
-};
-
-// Fecha de hoy en formato YYYY-MM-DD usando la zona horaria local ("sv-SE" da ese formato).
-const hoyLocal = () => new Date().toLocaleDateString("sv-SE");
-
-export default function ReservasPage() {
-  // ---- 1) Estado: todo lo que la pantalla "recuerda" ----
-  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
-  const [objetos, setObjetos] = useState<Objeto[]>([]);
-  const [reservas, setReservas] = useState<Reserva[]>([]);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [mensaje, setMensaje] = useState<string | null>(null);
-
-  // Campos del formulario (los <select>/<input> siempre manejan texto)
-  const [usuarioId, setUsuarioId] = useState("");
-  const [objetoId, setObjetoId] = useState("");
-  const [fechaInicio, setFechaInicio] = useState("");
-  const [fechaFin, setFechaFin] = useState("");
-  const [enviando, setEnviando] = useState(false);
-
-  // ---- 2) Leer datos del backend ----
-  const cargarTodo = useCallback(async () => {
+export default function ReservasPage({ user, objetoInicial, onEntregar }: { user: SessionUser; objetoInicial?: number; onEntregar: (id: number) => void }) {
+  const [usuarios, setUsuarios] = useState<Usuario[]>([])
+  const [objetos, setObjetos] = useState<Objeto[]>([])
+  const [reservas, setReservas] = useState<Reserva[]>([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  const [usuarioId, setUsuarioId] = useState(user.administrador ? '' : String(user.id))
+  const [objetoId, setObjetoId] = useState(objetoInicial ? String(objetoInicial) : '')
+  const [desde, setDesde] = useState('')
+  const [hasta, setHasta] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [filter, setFilter] = useState('')
+  const [cancelTarget, setCancelTarget] = useState<Reserva | null>(null)
+  const dialog = useRef<HTMLDialogElement>(null)
+  const load = useCallback(() => {
+    return Promise.all([user.administrador ? listarUsuarios() : Promise.resolve([]), listarObjetos(), listarReservas()])
+      .then(([u, o, r]) => { setUsuarios(u); setObjetos(o); setReservas(r) })
+      .catch((e: unknown) => { setLoadError(e instanceof Error ? e.message : 'No se pudieron cargar las reservas.') })
+      .finally(() => setLoading(false))
+  }, [user.administrador])
+  async function refresh() { setLoading(true); setLoadError(''); await load() }
+  useEffect(() => { void load() }, [load])
+  useEffect(() => { if (cancelTarget) dialog.current?.showModal(); else dialog.current?.close() }, [cancelTarget])
+  async function submit(e: FormEvent) {
+    e.preventDefault(); if (busy) return
+    setError(''); setNotice('')
+    if (!objetoId || !usuarioId || !desde || !hasta) { setError('Completa el usuario, equipo y las fechas.'); return }
+    if (desde < today() || hasta < desde) { setError('Elige fechas desde hoy y una fecha final igual o posterior al inicio.'); return }
+    setBusy(true)
     try {
-      const [u, o, r] = await Promise.all([listarUsuarios(), listarObjetos(), listarReservas()]);
-      setUsuarios(u);
-      setObjetos(o);
-      setReservas(r);
-      setError(null);
-    } catch (e) {
-      setError(mensajeDe(e));
-    } finally {
-      setCargando(false);
-    }
-  }, []);
-
-  // Se ejecuta una vez al abrir la pantalla
-  useEffect(() => {
-    void cargarTodo();
-  }, [cargarTodo]);
-
-  // ---- 3) Acciones del usuario ----
-  async function enviar(evento: FormEvent<HTMLFormElement>) {
-    evento.preventDefault(); // evita que el navegador recargue la página
-    setError(null);
-    setMensaje(null);
-    setEnviando(true);
-    try {
-      await crearReserva({
-        usuario_id: Number(usuarioId),
-        objeto_id: Number(objetoId),
-        fecha_inicio: fechaInicio,
-        fecha_fin: fechaFin,
-      });
-      setMensaje("Reserva creada correctamente.");
-      setFechaInicio("");
-      setFechaFin("");
-      await cargarTodo(); // volver a leer la lista para ver la reserva nueva
-    } catch (e) {
-      setError(mensajeDe(e)); // aquí llegan los mensajes de las reglas: "ya está reservado...", etc.
-    } finally {
-      setEnviando(false);
-    }
+      const r = await crearReserva({ usuario_id: user.administrador ? Number(usuarioId) : user.id, objeto_id: Number(objetoId), fecha_inicio: desde, fecha_fin: hasta })
+      setDesde(''); setHasta(''); setNotice(`Reserva #${r.id} creada. Está pendiente de confirmación.`)
+      await refresh()
+    } catch (e) { setError(message(e)) }
+    finally { setBusy(false) }
   }
-
-  async function cambiarEstado(id: number, accion: AccionReserva) {
-    setError(null);
-    setMensaje(null);
+  async function act(r: Reserva, action: AccionReserva) {
+    if (busy) return
+    setBusy(true); setError(''); setNotice('')
     try {
-      await cambiarEstadoReserva(id, accion);
-      await cargarTodo();
-    } catch (e) {
-      setError(mensajeDe(e));
-    }
+      await cambiarEstadoReserva(r.id, action)
+      setCancelTarget(null)
+      setNotice(`Reserva #${r.id} ${action === 'confirmar' ? 'confirmada' : action === 'cancelar' ? 'cancelada' : 'finalizada'} correctamente.`)
+      await refresh()
+    } catch (e) { setCancelTarget(null); setError(message(e)) }
+    finally { setBusy(false) }
   }
-
-  async function marcarVencidas() {
-    setError(null);
-    try {
-      const cambiadas = await procesarVencidas();
-      setMensaje(`Reservas marcadas como vencidas: ${cambiadas.length}`);
-      await cargarTodo();
-    } catch (e) {
-      setError(mensajeDe(e));
-    }
+  async function expire() {
+    if (busy) return
+    setBusy(true); setError(''); setNotice('')
+    try { const r = await procesarVencidas(); setNotice(r.length ? `${r.length} reservas marcadas como vencidas.` : 'No hay reservas pendientes de vencer.'); await refresh() }
+    catch (e) { setError(message(e)) }
+    finally { setBusy(false) }
   }
-
-  // ---- 4) Pequeños ayudantes para mostrar nombres en vez de números ----
-  const nombreUsuario = (id: number) => usuarios.find((u) => u.id === id)?.nombre ?? `Usuario #${id}`;
-  const nombreObjeto = (id: number) => objetos.find((o) => o.id === id)?.nombre ?? `Objeto #${id}`;
-
-  const usuariosActivos = usuarios.filter((u) => u.estado === "ACTIVO");
-  const objetosReservables = objetos.filter((o) => o.estado_disponibilidad !== "DADO_DE_BAJA");
-
-  // ---- 5) Lo que se dibuja ----
-  return (
-    <div className="page-reservas">
-      <header className="topbar">
-        <div>
-          <h1>Reservas</h1>
-          <p>Reserva objetos para unas fechas y administra su estado</p>
-        </div>
-      </header>
-
-      {error && <div className="alert alert-error">{error}</div>}
-      {mensaje && <div className="alert alert-ok">{mensaje}</div>}
-
-      <section className="panel">
-        <div className="panel-header">
-          <div>
-            <h2>Nueva reserva</h2>
-            <p>Las fechas no pueden cruzarse con otra reserva activa del mismo objeto</p>
-          </div>
-        </div>
-
-        {usuariosActivos.length === 0 || objetosReservables.length === 0 ? (
-          <p className="hint">
-            {cargando
-              ? "Cargando..."
-              : "Para crear una reserva debe haber usuarios activos y equipos registrados."}
-          </p>
-        ) : (
-          <form className="form-grid" onSubmit={enviar}>
-            <label className="field">
-              Usuario
-              <select value={usuarioId} onChange={(e) => setUsuarioId(e.target.value)} required>
-                <option value="">Selecciona...</option>
-                {usuariosActivos.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.nombre}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="field">
-              Objeto
-              <select value={objetoId} onChange={(e) => setObjetoId(e.target.value)} required>
-                <option value="">Selecciona...</option>
-                {objetosReservables.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.nombre}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="field">
-              Desde
-              <input
-                type="date"
-                value={fechaInicio}
-                min={hoyLocal()}
-                onChange={(e) => setFechaInicio(e.target.value)}
-                required
-              />
-            </label>
-
-            <label className="field">
-              Hasta
-              <input
-                type="date"
-                value={fechaFin}
-                min={fechaInicio || hoyLocal()}
-                onChange={(e) => setFechaFin(e.target.value)}
-                required
-              />
-            </label>
-
-            <button className="btn" type="submit" disabled={enviando}>
-              {enviando ? "Guardando..." : "Reservar"}
-            </button>
-          </form>
-        )}
-      </section>
-
-      <section className="panel">
-        <div className="panel-header">
-          <div>
-            <h2>Reservas</h2>
-            <p>{reservas.length} registradas</p>
-          </div>
-          <button className="btn btn-small btn-ghost" onClick={marcarVencidas}>
-            Marcar vencidas
-          </button>
-        </div>
-
-        <div className="reservas-row table-header">
-          <span>Usuario</span>
-          <span>Objeto</span>
-          <span>Desde</span>
-          <span>Hasta</span>
-          <span>Estado</span>
-          <span>Acciones</span>
-        </div>
-
-        {reservas.length === 0 && <p className="hint">{cargando ? "Cargando..." : "No hay reservas todavía."}</p>}
-
-        {reservas.map((r) => (
-          <div className="reservas-row" key={r.id}>
-            <span>
-              <strong>{nombreUsuario(r.usuario_id)}</strong>
-            </span>
-            <span>{nombreObjeto(r.objeto_id)}</span>
-            <span>{formatear(r.fecha_inicio)}</span>
-            <span>{formatear(r.fecha_fin)}</span>
-            <span className={`status estado-${r.estado.toLowerCase()}`}>{r.estado}</span>
-            <span className="reservas-acciones">
-              {r.estado === "PENDIENTE" && (
-                <button className="btn btn-small" onClick={() => cambiarEstado(r.id, "confirmar")}>
-                  Confirmar
-                </button>
-              )}
-              {r.estado === "CONFIRMADA" && (
-                <button className="btn btn-small" onClick={() => cambiarEstado(r.id, "finalizar")}>
-                  Finalizar
-                </button>
-              )}
-              {(r.estado === "PENDIENTE" || r.estado === "CONFIRMADA") && (
-                <button className="btn btn-small btn-danger" onClick={() => cambiarEstado(r.id, "cancelar")}>
-                  Cancelar
-                </button>
-              )}
-            </span>
-          </div>
-        ))}
-      </section>
-    </div>
-  );
+  const nombreUsuario = (id: number) => id === user.id ? user.nombre : usuarios.find(u => u.id === id)?.nombre ?? `Usuario #${id}`
+  const nombreObjeto = (id: number) => objetos.find(o => o.id === id)?.nombre ?? `Equipo #${id} (fuera del catálogo)`
+  const reservables = objetos.filter(canReserve)
+  const selected = objetos.find(o => String(o.id) === objetoId)
+  const rows = reservas.filter(r => !filter || r.estado === filter).sort((a, b) => b.id - a.id)
+  return <div className="page-reservas">
+    <header className="topbar"><div><span className="section-eyebrow">ORGANIZA TU PRÓXIMO PROYECTO</span><h1>{user.administrador ? 'Reservas de la comunidad' : 'Mis reservas'}</h1><p>{user.administrador ? 'Revisa solicitudes y confirma los recursos para cada proyecto.' : 'Elige tus fechas y sigue el estado de tus solicitudes.'}</p></div><button className="refresh-button" disabled={loading || busy} onClick={() => void refresh()}>{loading ? 'Actualizando…' : 'Actualizar'}</button></header>
+    {error && <div className="alert alert-error" role="alert">{error}</div>}{notice && <div className="alert alert-ok" role="status">{notice}</div>}
+    {loadError && <div className="alert alert-error" role="alert">{loadError} <button onClick={() => void refresh()}>Reintentar carga</button></div>}
+    <div className="reservation-metrics">{(['PENDIENTE', 'CONFIRMADA', 'CANCELADA'] as EstadoReserva[]).map(s => <button key={s} aria-pressed={filter === s} onClick={() => setFilter(filter === s ? '' : s)}><span className={`reservation-dot estado-${s.toLowerCase()}`} /><span>{s === 'PENDIENTE' ? 'Por confirmar' : s === 'CONFIRMADA' ? 'Confirmadas' : 'Canceladas'}</span><b>{loading || loadError ? '—' : reservas.filter(r => r.estado === s).length}</b></button>)}</div>
+    <section className="panel reservation-create"><div className="panel-header"><div><span className="section-eyebrow">01 · ELIGE TU EQUIPO Y FECHAS</span><h2>Nueva reserva</h2><p>Las fechas inicial y final están incluidas. Una reserva futura no bloquea otros períodos.</p></div><span className="reservation-step" aria-hidden="true">↗</span></div>
+      {loading ? <p className="hint" role="status">Consultando disponibilidad…</p> : loadError ? <p className="hint">Recarga los datos para crear una reserva.</p> : !reservables.length ? <p className="hint">No hay equipos disponibles para reservar en este momento.</p> : <form onSubmit={submit}><fieldset className="reservation-form" disabled={busy}>
+        {user.administrador ? <label className="field">Usuario<select required value={usuarioId} onChange={e => setUsuarioId(e.target.value)}><option value="">Selecciona un usuario</option>{usuarios.filter(u => u.estado === 'ACTIVO').map(u => <option key={u.id} value={u.id}>{u.nombre}</option>)}</select></label> : <div className="reservation-owner"><span>Reserva para</span><strong>{user.nombre}</strong></div>}
+        <label className="field">Equipo<select required value={objetoId} onChange={e => setObjetoId(e.target.value)}><option value="">Selecciona un equipo</option>{selected && !canReserve(selected) && <option value={selected.id} disabled>{selected.nombre} · No disponible</option>}{reservables.map(o => <option value={o.id} key={o.id}>{o.nombre}</option>)}</select></label>
+        <label className="field">Desde<input type="date" required min={today()} value={desde} onChange={e => { setDesde(e.target.value); if (hasta && hasta < e.target.value) setHasta('') }} /></label>
+        <label className="field">Hasta<input type="date" required min={desde || today()} value={hasta} onChange={e => setHasta(e.target.value)} /></label>
+        <button className="btn" disabled={Boolean(selected && !canReserve(selected))}>{busy ? 'Guardando…' : 'Crear reserva'}</button>
+      </fieldset><p className="reservation-help">La solicitud queda pendiente hasta que el administrador la confirme. No se permiten fechas que coincidan con otra reserva activa del mismo equipo.</p></form>}
+    </section>
+    <section className="panel reservation-list"><div className="panel-header"><div><span className="section-eyebrow">02 · SIGUE TUS SOLICITUDES</span><h2>{user.administrador ? 'Registro de reservas' : 'Historial de reservas'}</h2><p role="status">{loading ? 'Cargando…' : `${rows.length} ${rows.length === 1 ? 'reserva' : 'reservas'}`}</p></div><div className="reservation-list-tools"><label><span className="sr-only">Filtrar reservas por estado</span><select value={filter} onChange={e => setFilter(e.target.value)}><option value="">Todos los estados</option>{Object.entries(labels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>{user.administrador && <button className="text-button" disabled={busy || loading} onClick={() => void expire()}>Procesar vencidas</button>}</div></div>
+      {loading ? <p className="hint">Cargando reservas…</p> : loadError ? <p className="hint">No se pudieron actualizar las reservas.</p> : !rows.length ? <div className="reservation-empty"><strong>{filter ? 'No hay reservas con ese estado' : 'Tu próximo proyecto empieza con una reserva'}</strong><p>{filter ? 'Selecciona otro estado para consultar el historial.' : 'Elige un equipo y tus fechas en el formulario de arriba.'}</p>{filter && <button className="text-button" onClick={() => setFilter('')}>Ver todas las reservas</button>}</div> : <div className="reservation-table-wrap"><table className="reservation-table"><thead><tr><th>Reserva / Usuario</th><th>Equipo</th><th>Período</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>{rows.map(r => <tr key={r.id} data-reserva-id={r.id}><td><small>RESERVA #{r.id}</small><strong>{nombreUsuario(r.usuario_id)}</strong></td><td>{nombreObjeto(r.objeto_id)}</td><td><span>{formatDate(r.fecha_inicio)}</span><small>hasta {formatDate(r.fecha_fin)}</small></td><td><span className={`status estado-${r.estado.toLowerCase()}`}>{labels[r.estado]}</span></td><td><div className="reservas-acciones">{user.administrador && r.estado === 'PENDIENTE' && <button className="btn btn-small" disabled={busy} onClick={() => void act(r, 'confirmar')}>Confirmar</button>}{user.administrador && r.estado === 'CONFIRMADA' && <button className="btn btn-small btn-ghost" disabled={busy} onClick={() => onEntregar(r.id)}>Entregar equipo</button>}{(r.estado === 'PENDIENTE' || r.estado === 'CONFIRMADA') ? <button className="btn btn-small btn-danger" disabled={busy} onClick={() => setCancelTarget(r)}>Cancelar</button> : <span className="reservation-closed">Sin acciones pendientes</span>}</div></td></tr>)}</tbody></table></div>}
+    </section>
+    <dialog className="reservation-confirm" ref={dialog} onCancel={e => { e.preventDefault(); if (!busy) setCancelTarget(null) }} aria-labelledby="cancel-title"><span className="section-eyebrow">CONFIRMACIÓN</span><h2 id="cancel-title">¿Cancelar la reserva?</h2><p>La reserva #{cancelTarget?.id} de {cancelTarget && nombreObjeto(cancelTarget.objeto_id)} se cancelará y sus fechas quedarán libres.</p><footer><button className="refresh-button" disabled={busy} onClick={() => setCancelTarget(null)}>Conservar reserva</button><button className="btn btn-danger" disabled={busy} onClick={() => cancelTarget && void act(cancelTarget, 'cancelar')}>{busy ? 'Cancelando…' : 'Sí, cancelar reserva'}</button></footer></dialog>
+  </div>
 }

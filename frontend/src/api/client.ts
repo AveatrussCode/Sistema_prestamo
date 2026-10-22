@@ -1,7 +1,7 @@
 // Único lugar que sabe "cómo hablar con el backend". Todas las pantallas pasan por aquí.
 
 // Dirección del backend. Para cambiarla crea frontend/.env con:  VITE_API_URL=http://localhost:8000
-export const API_URL: string = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+export const API_URL: string = import.meta.env.VITE_API_URL ?? `${window.location.protocol}//${window.location.hostname}:8000`;
 
 export class ApiError extends Error {
   status: number;
@@ -31,6 +31,7 @@ export async function api<T>(ruta: string, opciones: Opciones = {}): Promise<T> 
   try {
     respuesta = await fetch(`${API_URL}${ruta}`, {
       method: opciones.method ?? "GET",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: opciones.body === undefined ? undefined : JSON.stringify(opciones.body),
     });

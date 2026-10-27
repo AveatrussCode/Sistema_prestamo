@@ -175,5 +175,25 @@ análisis, desarrollo, pruebas e integración.
 
 ## Estado del proyecto
 
-El proyecto se encuentra en fase de construcción. Las funcionalidades,
-diagramas y sprints se actualizarán conforme avance el desarrollo.
+El flujo implementado incluye cuentas y roles, catálogo, reservas, entregas y devoluciones. El backend admite PostgreSQL compartido en Neon y SQLite para pruebas locales.
+
+## Ejecutar el proyecto
+
+1. Instala dependencias Python: `pip install -r requirements.txt`.
+2. Copia `.env.example` a `.env` y configura `DATABASE_URL`. `.env` guarda la configuración privada; `.env.example` es la plantilla sin credenciales.
+3. Inicia el backend desde la raíz: `python -X utf8 -m uvicorn main:app --reload --host 127.0.0.1 --port 8000`.
+4. En otra terminal entra a `frontend`, ejecuta `npm.cmd ci` y luego `npm.cmd run dev -- --host 127.0.0.1 --port 5173`.
+5. Abre http://127.0.0.1:5173/; la documentación de la API está en http://127.0.0.1:8000/docs.
+
+Si la base compartida ya está preparada, los colaboradores solo configuran la conexión: no vuelven a migrar los datos. Para una primera migración desde SQLite, sigue la guía antes de iniciar el backend.
+
+## Guías y comprobaciones
+
+- [Base compartida y migración a Neon](docs/BASE_COMPARTIDA.md).
+- [Guion de demostración](docs/GUIA_PRESENTACION.md).
+- [Explicación del código y la base](docs/EXPLICACION_CODIGO_Y_BD.md).
+- API en SQLite temporal: `python -m unittest discover -s tests -v`.
+- PostgreSQL en esquema temporal: `python -X utf8 scripts/verificar_postgres.py`.
+- Frontend, desde `frontend`: `npm.cmd run lint` y `npm.cmd run build`.
+
+Las capturas e informes generados quedan en `artifacts`, fuera del código fuente. Los respaldos SQLite se conservan en `backups` y no se suben a Git. Las constancias PDF todavía usan almacenamiento local.

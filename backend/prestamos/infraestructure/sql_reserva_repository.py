@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Optional
 
-from sqlalchemy import select, insert, literal, exists
+from sqlalchemy import select, insert, literal, exists, text
 from sqlalchemy.orm import Session
 
 from backend.prestamos.domain.reserva import ESTADOS_ACTIVOS, EstadoReserva, Reserva
@@ -25,6 +25,11 @@ class SqlReservaRepository(ReservaRepository):
 
     def guardar(self, reserva: Reserva) -> Reserva:
         if reserva.id_reserva is None:
+            if self.db.get_bind().dialect.name == 'postgresql':
+                # Serializa reservas del mismo equipo entre todos los backends.
+                # El bloqueo se libera al confirmar o revertir la transacción.
+                self.db.execute(text('SELECT pg_advisory_xact_lock(74201, :objeto_id)'),
+                                {'objeto_id': reserva.objeto_id})
             # Una sola escritura condicional evita reservas simultáneas cruzadas en SQLite.
             overlap = exists(select(ReservaModel.id).where(
                 ReservaModel.objeto_id == reserva.objeto_id,
@@ -35,7 +40,8 @@ class SqlReservaRepository(ReservaRepository):
             columns = ['usuario_id', 'objeto_id', 'fecha_reserva', 'fecha_inicio', 'fecha_fin', 'estado']
             values = select(literal(reserva.usuario_id), literal(reserva.objeto_id),
                             literal(reserva.fecha_reserva), literal(reserva.fecha_inicio),
-                            literal(reserva.fecha_fin), literal(reserva.estado.value)).where(~overlap)
+                            literal(reserva.fecha_fin),
+                            literal(reserva.estado, type_=ReservaModel.__table__.c.estado.type)).where(~overlap)
             result = self.db.execute(insert(ReservaModel).from_select(columns, values).returning(ReservaModel.id))
             new_id = result.scalar_one_or_none()
             if new_id is None:

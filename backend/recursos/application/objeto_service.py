@@ -1,18 +1,9 @@
-
-
-
 from typing import Optional
 from backend.recursos.domain.objeto_repository import ObjetoRepository
 from backend.shared.errors import DomainError, NotFoundError
 from backend.recursos.domain.enums import EstadoFisico
 from backend.recursos.domain.objeto import Objeto
-
-
 from backend.recursos.domain.categoria_repository import CategoriaRepository
-from backend.recursos.domain.enums import EstadoFisico
-from backend.recursos.domain.objeto import Objeto
-
-
 
 class ObjetoService:
 
@@ -52,15 +43,3 @@ class ObjetoService:
         objeto = self.obtener_objeto(id)
         objeto.dar_de_baja()
         return self._objetos.guardar(objeto)
-
-
-
-
-
-
-
-
-
-
-
-

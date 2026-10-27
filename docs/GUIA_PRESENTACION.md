@@ -1,10 +1,10 @@
 # Avance del sistema de préstamos EPCC
 
-Guía de demostración local. Preparada el 22 de octubre de 2026.
+Guía de demostración. Actualizada para PostgreSQL compartido en Neon.
 
 ## Qué mostrar
 
-El sistema conecta cuatro módulos con una base SQLite local: usuarios, catálogo/inventario, reservas y préstamos. El recorrido es **reserva pendiente → confirmación → entrega → préstamo activo → devolución**.
+El sistema conecta cuatro módulos con una base PostgreSQL compartida en Neon (o SQLite en pruebas locales): usuarios, catálogo/inventario, reservas y préstamos. El recorrido es **reserva pendiente → confirmación → entrega → préstamo activo → devolución**.
 
 | Módulo | Avance demostrable |
 | --- | --- |
@@ -12,7 +12,7 @@ El sistema conecta cuatro módulos con una base SQLite local: usuarios, catálog
 | Catálogo/inventario | Alta y edición de equipos, categorías, búsqueda, filtros, ordenamiento y estados físicos y de disponibilidad. |
 | Reservas | Creación, consulta propia o administrativa, confirmación, cancelación, vencimiento y rechazo de fechas cruzadas. |
 | Préstamos | Entrega desde reserva confirmada, historial por usuario, plazos, devolución y bloqueo de equipos dañados. |
-| Persistencia | SQLite en `sistema_prestamo.db`. Los registros se conservan al reiniciar. |
+| Persistencia | PostgreSQL compartido en Neon, configurado por `DATABASE_URL`. Los registros se conservan al reiniciar. |
 
 ## Preparación
 
@@ -41,13 +41,7 @@ Las cuentas de ejemplo existentes usan la contraseña `Epcc2026!`:
 | Estudiante | `ana.ejemplo@unsa.edu.pe` |
 | Profesor | `carlos.ejemplo@unsa.edu.pe` |
 
-Antes de la presentación, crea un respaldo:
-
-```powershell
-python -X utf8 scripts/respaldar_bd.py
-```
-
-El script usa la configuración real de la aplicación y deja una copia consistente y verificada en `backups`. No borra ni reemplaza la base actual.
+Antes de presentar, comprueba la conexión Neon en DBeaver y conserva un respaldo PostgreSQL. `scripts/respaldar_bd.py` es exclusivo de SQLite. Consulta [BASE_COMPARTIDA.md](BASE_COMPARTIDA.md).
 
 ## Guion de 5 a 7 minutos
 
@@ -89,17 +83,17 @@ npm.cmd run lint
 npm.cmd run build
 ```
 
-Ensayo automatizado en navegador, desde la raíz, con frontend encendido, Microsoft Edge y el paquete Python `playwright` instalado:
+Comprobación adicional con PostgreSQL configurado:
 
 ```powershell
-python -X utf8 artifacts/ensayo_presentacion.py
+python -X utf8 scripts/verificar_postgres.py
 ```
 
-El ensayo crea una **copia temporal** de la base y usa el puerto 8022. Registra cuentas y equipos nuevos, recorre reserva, entrega y devolución en escritorio y celular, y verifica la persistencia. Las capturas quedan en `artifacts/ensayo-*.png`. No agrega esos registros a la base de presentación.
+Verifica reservas simultáneas, confirmación, entrega y devolución en un esquema temporal que se elimina al terminar.
 
 ## Alcance pendiente
 
-Este avance funciona localmente. No incluye envío de correos, penalizaciones automáticas por retrasos/daños, renovación de préstamos ni despliegue de producción. La constancia PDF se almacena localmente; no se valida contra un servicio universitario externo. Las políticas de préstamo existentes como clases aún no tienen una configuración administrativa integrada.
+El frontend y backend funcionan localmente y los datos se comparten mediante Neon. No incluye envío de correos, penalizaciones automáticas por retrasos/daños, renovación de préstamos ni despliegue de producción. La constancia PDF se almacena localmente; no se valida contra un servicio universitario externo. Las políticas de préstamo existentes como clases aún no tienen una configuración administrativa integrada.
 
 ## Si algo falla durante la demostración
 
@@ -107,4 +101,4 @@ Este avance funciona localmente. No incluye envío de correos, penalizaciones au
 - Si no puedes entregar, comprueba que la reserva esté Confirmada, comience hoy o antes y no haya vencido, y que el equipo esté disponible.
 - Si un equipo está Prestado, registra su devolución desde Préstamos; inventario no permite liberarlo manualmente mientras tenga un préstamo abierto.
 - Si no ves el cambio después de usar otra sesión, pulsa Actualizar o vuelve a entrar en la sección.
-- Conserva el respaldo. No reemplaces `sistema_prestamo.db` mientras el backend esté abierto.
+- Comprueba que todos usen la misma base y rama de Neon. No repitas la migración sobre una base con datos.

@@ -6,9 +6,13 @@ venv/
 *.db
 uploads/
 artifacts/*.png
+artifacts/base_datos_presentacion.html
 
 # Variables de entorno
 .env
+.env.*
+!.env.example
+*.log
 
 # Node
 node_modules/

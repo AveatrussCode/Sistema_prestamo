@@ -4,7 +4,6 @@ __pycache__/
 .venv/
 venv/
 *.db
-uploads/
 artifacts/*.png
 artifacts/base_datos_presentacion.html
 

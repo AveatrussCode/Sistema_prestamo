@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Enum as SQLEnum, DateTime, Boolean
 from sqlalchemy.orm import relationship
 from backend.database import Base
 from backend.usuarios.domain.usuario import EstadoUsuario
@@ -21,20 +21,24 @@ class UsuarioModel(Base):
     credibilidad = Column(Float, default=100.0)
     estado = Column(SQLEnum(EstadoUsuario), default=EstadoUsuario.ACTIVO)
 
-    # Relación con Rol (con lazy="joined" para evitar DetachedInstanceError)
     rol_id = Column(Integer, ForeignKey("roles.id"), nullable=True)
     rol = relationship("RolModel", lazy="joined")
 
-    # Campo discriminador para la herencia
     tipo = Column(String(50))
 
-    # Campos específicos de subclases
     carrera = Column(String, nullable=True)
     matricula = Column(String, nullable=True)
     departamento = Column(String, nullable=True)
     especialidad = Column(String, nullable=True)
     area = Column(String, nullable=True)
     cargo = Column(String, nullable=True)
+
+    # ---- NUEVOS CAMPOS PARA EL FLUJO DE APROBACIÓN ----
+    motivo_rechazo = Column(String, nullable=True)
+    fecha_solicitud = Column(DateTime, nullable=True)
+    revisado_por_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
+    fecha_revision = Column(DateTime, nullable=True)
+    verificado_externo = Column(Boolean, default=False, nullable=False)
 
     __mapper_args__ = {
         'polymorphic_identity': 'usuario',

@@ -24,6 +24,7 @@ class SqlObjetoRepository(ObjetoRepository):
             categoria_id=m.categoria_id,
             estado_disponibilidad=m.estado_disponibilidad,
             estado_fisico=m.estado_fisico,
+            imagen_path=m.imagen_path,
         )
 
     def guardar(self, objeto: Objeto) -> Objeto:
@@ -39,6 +40,7 @@ class SqlObjetoRepository(ObjetoRepository):
         modelo.categoria_id = objeto.categoria_id
         modelo.estado_disponibilidad = objeto.estado_disponibilidad
         modelo.estado_fisico = objeto.estado_fisico
+        modelo.imagen_path = objeto.imagen_path
         self.db.commit()
         self.db.refresh(modelo)
         return self._a_dominio(modelo)

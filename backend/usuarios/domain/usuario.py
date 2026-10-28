@@ -6,6 +6,7 @@ class EstadoUsuario(Enum):
     ACTIVO = "ACTIVO"
     INACTIVO = "INACTIVO"
     SUSPENDIDO = "SUSPENDIDO"
+    PENDIENTE_APROBACION = "PENDIENTE_APROBACION"  # NUEVO
 
 
 class Usuario(ABC):
@@ -31,6 +32,9 @@ class Usuario(ABC):
 
     def suspender(self):
         self.estado = EstadoUsuario.SUSPENDIDO
+
+    def enviar_a_revision(self):
+        self.estado = EstadoUsuario.PENDIENTE_APROBACION
 
 
 class Estudiante(Usuario):

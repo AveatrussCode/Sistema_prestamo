@@ -27,3 +27,4 @@ class ObjetoModel(Base):
         default=EstadoFisico.BUENO,
         nullable=False,
     )
+    imagen_path = Column(String, nullable=True)

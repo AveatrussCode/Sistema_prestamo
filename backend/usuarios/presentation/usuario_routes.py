@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Literal
 from sqlalchemy.exc import IntegrityError
-from backend.usuarios.presentation.auth_routes import RegistroRequest, hash_password
 from sqlalchemy.orm import Session
+from datetime import datetime, timezone
 
 from backend.database import get_db
-from backend.usuarios.presentation.matricula_routes import constancia_path
+from backend.usuarios.presentation.auth_routes import hash_password, administrador, constancia_path
 from backend.usuarios.application.registrar_usuario import RegistrarUsuarioUseCase
 from backend.usuarios.application.asignar_rol import AsignarRolUseCase
 from backend.usuarios.application.gestionar_perfil import (
@@ -17,6 +17,9 @@ from backend.usuarios.infraestructure.usuario_repository import (
     UsuarioRepository,
     RolRepository,
 )
+from backend.shared.mailer import correo_aprobacion, correo_rechazo
+from backend.usuarios.domain.usuario import EstadoUsuario
+from backend.usuarios.infraestructure.models import UsuarioModel
 
 
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
@@ -24,7 +27,11 @@ router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
 
 # ---------- Esquemas Pydantic ----------
 
-class UsuarioCreate(RegistroRequest):
+class UsuarioCreate(BaseModel):
+    nombre: str
+    correo: str
+    codigo: str
+    password: str
     tipo: Literal['Estudiante', 'Profesor', 'Administrativo']
     carrera: str | None = None
     matricula: str | None = None
@@ -44,24 +51,114 @@ class ActualizarPerfilRequest(BaseModel):
 
 
 class CambiarEstadoRequest(BaseModel):
-    estado: str  # "ACTIVO" | "INACTIVO" | "SUSPENDIDO"
+    estado: str  # "ACTIVO" | "INACTIVO" | "SUSPENDIDO" | "PENDIENTE_APROBACION"
 
 
 class AjustarCredibilidadRequest(BaseModel):
-    delta: float  # positivo para subir, negativo para bajar
+    delta: float
     motivo: str
 
 
 class EstablecerCredibilidadRequest(BaseModel):
-    valor: float  # entre 0 y 100
+    valor: float
     motivo: str
 
 
-# ---------- Endpoints ----------
+class AprobarRequest(BaseModel):
+    forzar: bool = False
+
+
+class RechazarRequest(BaseModel):
+    motivo: str = Field(min_length=10, max_length=500)
+
+
+# ---------- FLUJO DE APROBACIÓN DE SOLICITUDES (Debe ir antes de /{id_usuario}) ----------
+
+@router.get("/solicitudes")
+def listar_solicitudes(db: Session = Depends(get_db)):
+    """Lista todos los usuarios en estado PENDIENTE_APROBACION."""
+    solicitudes = db.query(UsuarioModel).filter(
+        UsuarioModel.estado == EstadoUsuario.PENDIENTE_APROBACION
+    ).order_by(UsuarioModel.fecha_solicitud.asc()).all()
+
+    return [
+        {
+            "id": u.id,
+            "nombre": u.nombre,
+            "correo": u.correo_institucional,
+            "codigo": u.codigo_institucional,
+            "tipo": u.tipo,
+            "fecha_solicitud": u.fecha_solicitud.isoformat() if u.fecha_solicitud else None,
+            "verificado_externo": u.verificado_externo,
+            "constancia_matricula": u.tipo == "estudiante" and constancia_path(u.id).is_file(),
+            "detalles": {
+                "carrera": u.carrera,
+                "departamento": u.departamento,
+                "especialidad": u.especialidad,
+                "area": u.area,
+                "cargo": u.cargo,
+            }
+        }
+        for u in solicitudes
+    ]
+
+
+@router.get("/solicitudes/count")
+def contar_solicitudes(db: Session = Depends(get_db)):
+    """Devuelve el total de solicitudes pendientes (para el badge del menú)."""
+    total = db.query(UsuarioModel).filter(
+        UsuarioModel.estado == EstadoUsuario.PENDIENTE_APROBACION
+    ).count()
+    return {"total": total}
+
+
+@router.post("/{id_usuario}/aprobar")
+def aprobar_usuario(id_usuario: int, request: AprobarRequest, db: Session = Depends(get_db),
+                    admin=Depends(administrador)):
+    usuario = db.query(UsuarioModel).filter(UsuarioModel.id == id_usuario).first()
+    if not usuario:
+        raise HTTPException(404, "Usuario no encontrado.")
+    if usuario.estado != EstadoUsuario.PENDIENTE_APROBACION:
+        raise HTTPException(400, "Esta cuenta no está pendiente de aprobación.")
+    if not usuario.verificado_externo and not request.forzar:
+        raise HTTPException(400, "El sistema externo no verificó a este usuario. Usa 'forzar=true' si lo confirmaste manualmente.")
+
+    usuario.estado = EstadoUsuario.ACTIVO
+    usuario.revisado_por_id = admin.id
+    usuario.fecha_revision = datetime.now(timezone.utc).replace(tzinfo=None)
+    usuario.motivo_rechazo = None
+    db.commit()
+    db.refresh(usuario)
+
+    correo_aprobacion(usuario.nombre, usuario.correo_institucional)
+    return {"mensaje": f"Usuario {usuario.nombre} aprobado.", "id": usuario.id}
+
+
+@router.post("/{id_usuario}/rechazar")
+def rechazar_usuario(id_usuario: int, request: RechazarRequest, db: Session = Depends(get_db),
+                     admin=Depends(administrador)):
+    usuario = db.query(UsuarioModel).filter(UsuarioModel.id == id_usuario).first()
+    if not usuario:
+        raise HTTPException(404, "Usuario no encontrado.")
+    if usuario.estado != EstadoUsuario.PENDIENTE_APROBACION:
+        raise HTTPException(400, "Esta cuenta no está pendiente de aprobación.")
+
+    usuario.estado = EstadoUsuario.INACTIVO
+    usuario.motivo_rechazo = request.motivo.strip()
+    usuario.revisado_por_id = admin.id
+    usuario.fecha_revision = datetime.now(timezone.utc).replace(tzinfo=None)
+    db.commit()
+    db.refresh(usuario)
+
+    correo_rechazo(usuario.nombre, usuario.correo_institucional, usuario.motivo_rechazo)
+    return {"mensaje": f"Solicitud de {usuario.nombre} rechazada.", "id": usuario.id}
+
+
+# ---------- CRUD de Usuarios (Rutas con {id_usuario}) ----------
 
 @router.post("/", status_code=201)
 def crear_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
-    """RF01 - Crea un nuevo usuario. El rol se asigna automáticamente según el tipo."""
+    """RF01 - Crea un nuevo usuario desde el panel de administrador. El rol se asigna automáticamente según el tipo."""
     repo = UsuarioRepository(db)
     rol_repo = RolRepository(db)
     caso_uso = RegistrarUsuarioUseCase(repo, rol_repo)
@@ -87,7 +184,7 @@ def crear_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
 @router.get("/")
 def listar_usuarios(
     tipo: str | None = Query(None, description="Filtrar por tipo: estudiante, profesor, administrativo"),
-    estado: str | None = Query(None, description="Filtrar por estado: ACTIVO, INACTIVO, SUSPENDIDO"),
+    estado: str | None = Query(None, description="Filtrar por estado: ACTIVO, INACTIVO, SUSPENDIDO, PENDIENTE_APROBACION"),
     db: Session = Depends(get_db),
 ):
     """RF20 - Lista todos los usuarios con filtros opcionales."""
@@ -142,8 +239,6 @@ def obtener_usuario(id_usuario: int, db: Session = Depends(get_db)):
         }
     }
 
-
-# ---------- RF03: Gestión de perfiles ----------
 
 @router.put("/{id_usuario}")
 def actualizar_perfil(
@@ -205,8 +300,6 @@ def eliminar_usuario(id_usuario: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail=str(e))
 
 
-# ---------- RF04: Gestión de roles ----------
-
 @router.put("/{id_usuario}/rol")
 def asignar_rol(id_usuario: int, request: AsignarRolRequest, db: Session = Depends(get_db)):
     """RF04 - Asigna un rol a un usuario existente."""
@@ -225,18 +318,13 @@ def asignar_rol(id_usuario: int, request: AsignarRolRequest, db: Session = Depen
         raise HTTPException(status_code=400, detail=str(e))
 
 
-# ---------- RF19: Indicador de confiabilidad ----------
-
 @router.put("/{id_usuario}/credibilidad/ajustar")
 def ajustar_credibilidad(
     id_usuario: int,
     request: AjustarCredibilidadRequest,
     db: Session = Depends(get_db),
 ):
-    """
-    RF19 - Ajusta la credibilidad sumando o restando puntos.
-    Ejemplo: delta=-10 baja 10 puntos; delta=5 sube 5 puntos.
-    """
+    """RF19 - Ajusta la credibilidad sumando o restando puntos."""
     repo = UsuarioRepository(db)
     caso_uso = GestionarCredibilidadUseCase(repo)
 
@@ -260,10 +348,7 @@ def establecer_credibilidad(
     request: EstablecerCredibilidadRequest,
     db: Session = Depends(get_db),
 ):
-    """
-    RF19 - Establece un valor específico de credibilidad (0-100).
-    Útil para resetear manualmente.
-    """
+    """RF19 - Establece un valor específico de credibilidad (0-100)."""
     repo = UsuarioRepository(db)
     caso_uso = GestionarCredibilidadUseCase(repo)
 

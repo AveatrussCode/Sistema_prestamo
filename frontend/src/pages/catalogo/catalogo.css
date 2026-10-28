@@ -90,3 +90,46 @@
 .inventory-edit{display:flex;justify-content:space-between;align-items:center;border:1px solid #dce5ef;background:#f7faff;color:#2865b4;padding:10px 12px;border-radius:8px;font-size:11px;cursor:pointer;margin-top:5px}.inventory-edit:hover{background:#eaf2ff}
 .equipment-dialog{width:min(560px,calc(100% - 28px));max-height:90svh;overflow:auto;border:1px solid #dce5ef;border-radius:16px;padding:26px;color:#172b42;box-shadow:0 24px 80px #0c254b30;font:13px/1.5 'Segoe UI',sans-serif}.equipment-dialog::backdrop{background:#071a3099;backdrop-filter:blur(3px)}.equipment-dialog>header{display:flex;align-items:center;justify-content:space-between;gap:14px}.equipment-dialog h2{margin:7px 0 12px;font-size:23px}.equipment-dialog>header>button{border:0;background:#edf2f8;color:#536b82;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:22px}.equipment-dialog>p{color:#728397;font-size:12px;margin-bottom:20px}.equipment-dialog fieldset{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:16px;min-width:0}.equipment-dialog label{display:flex;flex-direction:column;gap:7px;font-size:12px;font-weight:600}.workspace .equipment-dialog textarea{resize:vertical;min-height:85px}.equipment-form-row{display:grid;grid-template-columns:1fr 1fr;gap:15px}.equipment-dialog footer{display:flex;justify-content:flex-end;gap:10px;border-top:1px solid #e4ebf2;margin-top:23px;padding-top:18px}.equipment-dialog .text-button{text-align:left;align-self:flex-start;padding:0}.new-category{padding:14px;border:1px dashed #b6cbe3;background:#f4f8fd;border-radius:9px;display:flex;align-items:end;gap:10px}.new-category label{min-width:0;flex:1}.equipment-dialog .equipment-help{font-size:11px;color:#80632d;background:#fff7e6;border-radius:8px;padding:10px;margin:0}
 @media(max-width:560px){.equipment-dialog{padding:20px}.equipment-form-row{grid-template-columns:1fr}.new-category{flex-direction:column;align-items:stretch}.workspace .catalogo-filtros{grid-template-columns:1fr}.workspace .catalogo-filtros>.field:first-child{grid-column:auto}}
+
+.equipment-visual img.equipment-real-img {
+  width: 100%;
+  height: 100%;
+  /* 'contain' hace que la foto se vea completa, sin recortarse, dejando un pequeño margen */
+  object-fit: contain; 
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  transition: transform 0.3s ease;
+}
+
+/* Efecto hover sutil */
+.objeto-card:hover .equipment-real-img {
+  transform: scale(1.05);
+}
+
+/* Forzamos que el texto EPCC se vaya a la esquina inferior izquierda */
+.equipment-visual.visual-img > small {
+  position: absolute;
+  bottom: 12px;
+  left: 17px;
+  z-index: 3;
+  color: #64748b; /* Color gris para que contraste con el fondo claro */
+}
+
+/* El degradado sutil en la parte de abajo para asegurar legibilidad */
+.equipment-visual.visual-img::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(237, 243, 250, 0.9) 0%, transparent 30%);
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* La etiqueta de "Disponible" se queda arriba a la izquierda */
+.equipment-visual.visual-img .equipment-status {
+  position: absolute;
+  top: 13px;
+  left: 13px;
+  z-index: 4;
+}

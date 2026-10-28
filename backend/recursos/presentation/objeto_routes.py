@@ -1,8 +1,12 @@
 from backend.usuarios.presentation.auth_routes import administrador
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, File, UploadFile
 from pydantic import BaseModel, Field, ConfigDict
 from backend.recursos.infraestructure.models import CategoriaModel
 from sqlalchemy.orm import Session
+
+import os
+from pathlib import Path
+from fastapi.responses import FileResponse
 
 from backend.database import get_db
 from backend.recursos.domain.enums import EstadoDeDisponibilidad, EstadoFisico
@@ -11,6 +15,10 @@ from backend.recursos.infraestructure.sql_objeto_repository import SqlObjetoRepo
 from backend.shared.errors import DomainError, NotFoundError
 
 router = APIRouter(prefix="/objetos", tags=["Objetos"])
+
+# Carpeta de subida para imágenes
+OBJETOS_DIR = Path(os.environ.get('OBJETOS_DIR', str(Path(__file__).resolve().parents[3] / 'uploads' / 'objetos')))
+MAX_IMAGE_BYTES = 2 * 1024 * 1024  # 2MB
 
 
 # ---------- Esquemas ----------
@@ -41,6 +49,7 @@ def _a_dict(o: Objeto) -> dict:
         "categoria_id": o.categoria_id,
         "estado_disponibilidad": o.estado_disponibilidad.value,
         "estado_fisico": o.estado_fisico.value,
+        "imagen_url": f"/objetos/{o.id}/imagen" if o.imagen_path else None,
     }
 
 
@@ -86,6 +95,56 @@ def listar_objetos(
     ]
 
 
+# ---------- Endpoints de Imagen ----------
+
+@router.put("/{id_objeto}/imagen", dependencies=[Depends(administrador)])
+async def subir_imagen(id_objeto: int, imagen: UploadFile = File(...), db: Session = Depends(get_db)):
+    repo = SqlObjetoRepository(db)
+    obj = repo.buscar_por_id(id_objeto)
+    if not obj:
+        raise HTTPException(404, "Equipo no encontrado.")
+    
+    # Validar extensión
+    ext = Path(imagen.filename).suffix.lower() if imagen.filename else ""
+    if ext not in ['.jpg', '.jpeg', '.png', '.webp']:
+        raise HTTPException(400, "Solo se permiten imágenes JPG, PNG o WEBP.")
+    
+    contenido = await imagen.read()
+    if len(contenido) > MAX_IMAGE_BYTES:
+        raise HTTPException(413, "La imagen no debe superar los 2MB.")
+    
+    OBJETOS_DIR.mkdir(parents=True, exist_ok=True)
+    ruta_archivo = OBJETOS_DIR / f"{id_objeto}{ext}"
+    
+    # Borrar imagen anterior si existe con otra extensión
+    for f in OBJETOS_DIR.glob(f"{id_objeto}.*"):
+        f.unlink()
+        
+    ruta_archivo.write_bytes(contenido)
+    
+    # Guardar en BD
+    obj.imagen_path = ruta_archivo.name
+    repo.guardar(obj)
+    
+    return {"mensaje": "Imagen actualizada correctamente."}
+
+
+@router.get("/{id_objeto}/imagen")
+def obtener_imagen(id_objeto: int, db: Session = Depends(get_db)):
+    repo = SqlObjetoRepository(db)
+    obj = repo.buscar_por_id(id_objeto)
+    if not obj or not obj.imagen_path:
+        raise HTTPException(404, "Imagen no encontrada.")
+    
+    ruta = OBJETOS_DIR / obj.imagen_path
+    if not ruta.is_file():
+        raise HTTPException(404, "Archivo de imagen no encontrado en el servidor.")
+        
+    return FileResponse(ruta)
+
+
+# ---------- Endpoints de Detalle / Edición ----------
+
 @router.get("/{id_objeto}")
 def obtener_objeto(id_objeto: int, db: Session = Depends(get_db)):
     repo = SqlObjetoRepository(db)
@@ -130,9 +189,14 @@ def eliminar_objeto(id_objeto: int, db: Session = Depends(get_db)):
     repo = SqlObjetoRepository(db)
     try:
         repo.eliminar(id_objeto)
+        # Borrar la imagen si existía
+        for f in OBJETOS_DIR.glob(f"{id_objeto}.*"):
+            f.unlink(missing_ok=True)
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
+
+# ---------- Utilidades ----------
 
 def validar_categoria(db: Session, categoria_id: int):
     categoria = db.get(CategoriaModel, categoria_id)

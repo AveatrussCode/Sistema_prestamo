@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Archivos subidos por los usuarios (PDFs, imágenes)
+uploads/
+
+# Base de datos local (por si acaso)
+*.db
+*.sqlite

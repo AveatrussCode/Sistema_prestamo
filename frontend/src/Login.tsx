@@ -34,7 +34,7 @@ export default function Login() {
     <section className="login-panel"><div className="login-card">
       <img className="unsa-logo" src="/unsa.jpg" alt="Universidad Nacional de San Agustín de Arequipa" />
       <span className="login-eyebrow">SISTEMA DE PRÉSTAMOS · EPCC</span>
-      {registering ? <RegistroCuentaForm onSuccess={user => { setRegistering(false); setSession(user) }} onCancel={() => setRegistering(false)} /> : <>
+      {registering ? <RegistroCuentaForm onCancel={() => setRegistering(false)} /> : <>
       <h2>Iniciar sesión</h2><p>Acceso para estudiantes, profesores y administrativos.</p>
       <form onSubmit={submit}>
         <label htmlFor="email">Correo institucional</label><input id="email" type="email" autoComplete="username" placeholder="tu.nombre@epcc.edu.pe" value={email} onChange={event => setEmail(event.target.value)} required />

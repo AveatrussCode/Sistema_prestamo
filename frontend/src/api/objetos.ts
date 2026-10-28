@@ -16,6 +16,7 @@ export interface Objeto {
   categoria_id: number;
   estado_disponibilidad: EstadoDisponibilidad;
   estado_fisico: EstadoFisico;
+  imagen_url: string | null;
 }
 
 export interface Categoria {
@@ -46,3 +47,21 @@ export type DatosObjeto = Omit<Objeto, 'id'>;
 export const crearObjeto = (body: DatosObjeto) => api<Objeto>('/objetos/', { method: 'POST', body });
 export const editarObjeto = (id: number, body: DatosObjeto) => api<Objeto>(`/objetos/${id}`, { method: 'PUT', body });
 export const crearCategoria = (nombre: string) => api<Categoria>('/categorias/', { method: 'POST', body: { nombre } });
+
+import { API_URL } from "./client";
+export const subirImagenObjeto = async (id: number, file: File) => {
+  const fd = new FormData();
+  fd.append("imagen", file);
+  const res = await fetch(`${API_URL}/objetos/${id}/imagen`, {
+    method: "PUT",
+    credentials: "include",
+    body: fd, // No establecer Content-Type manualmente
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => null);
+    throw new Error(error?.detail ?? "Error al subir la imagen");
+  }
+  return res.json();
+};
+
+export const imagenUrl = (id: number) => `${API_URL}/objetos/${id}/imagen`;

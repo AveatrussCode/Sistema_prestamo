@@ -28,3 +28,21 @@ export async function subirConstancia(id: number, archivo: File) {
     throw new Error(error?.detail ?? 'No se pudo subir la constancia. Intenta nuevamente.')
   }
 }
+
+export interface SolicitudPendiente {
+  id: number; nombre: string; correo: string; codigo: string; tipo: string
+  fecha_solicitud: string | null
+  verificado_externo: boolean
+  constancia_matricula: boolean
+  detalles: {
+    carrera: string | null; departamento: string | null
+    especialidad: string | null; area: string | null; cargo: string | null
+  }
+}
+
+export const listarSolicitudes = () => api<SolicitudPendiente[]>('/usuarios/solicitudes')
+export const contarSolicitudes = () => api<{ total: number }>('/usuarios/solicitudes/count')
+export const aprobarSolicitud = (id: number, forzar = false) =>
+  api<{ mensaje: string }>(`/usuarios/${id}/aprobar`, { method: 'POST', body: { forzar } })
+export const rechazarSolicitud = (id: number, motivo: string) =>
+  api<{ mensaje: string }>(`/usuarios/${id}/rechazar`, { method: 'POST', body: { motivo } })

@@ -328,23 +328,45 @@ export default function Workspace({ user, logout, onUserChange, logoutBusy = fal
 
                 {/* aca son ternarios */}
 
-                {loading ? <p className="dashboard-empty" role="status">Consultando equipos…</p> : 
+                {loading ? 
+                <p className="dashboard-empty" role="status">Consultando equipos…</p> : 
                 error ?         
-                <p className="dashboard-empty">Actualiza los datos para consultar los equipos.</p> : available.length ? available.slice(0, 3).map(o => 
+                <p className="dashboard-empty">Actualiza los datos para consultar los equipos.</p> : 
+                available.length ? available.slice(0, 3).map(o => 
+
                 <div className="equipment-preview" key={o.id}>
-                  <span className="equipment-symbol"><Icon name="Equipos" /></span>
+
+                  <span className="equipment-symbol">
+                    <Icon name="Equipos" />
+                  </span>
+                  
                   <div>
                     <strong>{o.nombre}</strong>
                     <small>{o.descripcion || 'Equipo de la escuela'}</small>
                   </div>
-                  <button aria-label={`Reservar ${o.nombre}`} onClick={() => { setSelectedObject(o.id); navigate('Reservas') }}>Reservar <span aria-hidden="true">↗</span></button>
+
+                  <button aria-label={`Reservar ${o.nombre}`} onClick={() => { setSelectedObject(o.id); navigate('Reservas') }}>
+
+                    Reservar 
+                    <span aria-hidden="true">↗</span>
+
+                  </button>
+
                 </div>) : 
-                <p className="dashboard-empty">Por ahora no hay equipos disponibles. Puedes consultar el catálogo completo.</p>}
+
+                <p className="dashboard-empty">Por ahora no hay equipos disponibles. Puedes consultar el catálogo completo.</p>
+
+                }
+
               </section>
+
               <section className="dashboard-guide">
+
                 <span className="section-eyebrow">ASÍ DE FÁCIL</span>
                 <h2>De la idea<br/>{' '}al proyecto.</h2>
+
                 <ol>
+                  
                   <li>
                     <b>01</b>
                     <div>
@@ -352,6 +374,7 @@ export default function Workspace({ user, logout, onUserChange, logoutBusy = fal
                       <p>Explora el catálogo y su disponibilidad.</p>
                     </div>
                   </li>
+
                   <li>
                     <b>02</b>
                     <div>
@@ -359,6 +382,7 @@ export default function Workspace({ user, logout, onUserChange, logoutBusy = fal
                       <p>Envía una reserva para tu proyecto.</p>
                     </div>
                   </li>
+
                   <li>
                     <b>03</b>
                     <div>
@@ -366,12 +390,19 @@ export default function Workspace({ user, logout, onUserChange, logoutBusy = fal
                       <p>Consulta la confirmación en tus reservas.</p>
                     </div>
                   </li>
+
                 </ol>
+
                 <button className="text-button" onClick={() => navigate('Mi perfil')}>Completar mi perfil →</button>
+
               </section>
+
             </div>
+
           </>}
+
         </div>
+        
         <footer className="workspace-footer">
           <span>EPCC · UNSA</span>
           <span>Recursos que conectan ideas.</span>

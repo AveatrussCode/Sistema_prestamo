@@ -43,61 +43,88 @@ export default function Login() {
 
             <img className="unsa-logo" src="/unsa.jpg" alt="Universidad Nacional de San Agustín de Arequipa" />
             <span className="login-eyebrow">SISTEMA DE PRÉSTAMOS · EPCC</span>
-            {registering ? <RegistroCuentaForm onCancel={() => setRegistering(false)} /> : <>
-            <h2>Iniciar sesión</h2>
-            <p>Acceso para estudiantes, profesores y administrativos.</p>
-            <form onSubmit={submit}>
+            {registering ? <RegistroCuentaForm onCancel={() => setRegistering(false)} /> : 
+            <>
+              <h2>Iniciar sesión</h2>
+              <p>Acceso para estudiantes, profesores y administrativos.</p>
 
-              <label htmlFor="email">Correo institucional</label>
-              <input id="email" type="email" autoComplete="username" placeholder="tu.nombre@epcc.edu.pe" value={email} onChange={event => setEmail(event.target.value)} required />
+              <form onSubmit={submit}>
 
-              <label htmlFor="password">Contraseña</label>
+                <label htmlFor="email">Correo institucional</label>
+                <input id="email" type="email" autoComplete="username" placeholder="tu.nombre@epcc.edu.pe" value={email} onChange={event => setEmail(event.target.value)} required />
+                <label htmlFor="password">Contraseña</label>
 
                 <div className="login-password">
+
                   <input id="password" type={visible ? 'text' : 'password'} autoComplete="current-password" placeholder="Ingresa tu contraseña" value={password} onChange={event => setPassword(event.target.value)} required />
-                  <button type="button" onClick={() => setVisible(!visible)} aria-label={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'} aria-pressed={visible}><span aria-hidden="true">{visible ? '🙉' : '🙈'}</span></button>
+
+                  <button type="button" onClick={() => setVisible(!visible)} aria-label={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'} aria-pressed={visible}>
+                    <span aria-hidden="true">{visible ? '🙉' : '🙈'}</span>
+                  </button>
+
                 </div>
 
-              {error && <p className="login-error" role="alert">{error}</p>}
-              <button className="login-submit" type="submit" disabled={busy}>{busy ? "Verificando cuenta…" : "Iniciar sesión →"}</button>
-              
-            </form>
+                {error && <p className="login-error" role="alert">{error}</p>}
+                
+                <button className="login-submit" type="submit" disabled={busy}>
+                  {busy ? "Verificando cuenta…" : "Iniciar sesión →"}
+                </button>
 
-          <button type="button" className="login-register-switch" disabled={busy} onClick={() => { setRegistering(true); setError(''); setPassword('') }}>
-            ¿No tienes cuenta? <strong>Crear cuenta</strong>
-          </button>
+              </form>
 
-          <details className="login-demo">
-            <summary>Cuentas locales de ejemplo</summary>
-            <div>
-              <span>Estudiante: ana.ejemplo@unsa.edu.pe</span>
-              <span>Profesor: carlos.ejemplo@unsa.edu.pe</span>
-              <span>Administrativo: lucia.ejemplo@unsa.edu.pe</span>
-              <span>Contraseña de ejemplo: Epcc2026!</span></div></details>
-          </>}
+              <button type="button" className="login-register-switch" disabled={busy} onClick={() => { setRegistering(true); setError(''); setPassword('') }}>
+                ¿No tienes cuenta? 
+                <strong>Crear cuenta</strong>
+              </button>
 
-          <small className="login-note">Escuela Profesional de Ciencia de la Computación</small>
+              <details className="login-demo">
 
-        </div>
-      </section>
+                <summary>Cuentas locales de ejemplo</summary>
 
-      <section className="login-story">
-        <span className="story-tag"><i /> EPCC · UNSA</span>
+                <div>
+                  <span>Estudiante: ana.ejemplo@unsa.edu.pe</span>
+                  <span>Profesor: carlos.ejemplo@unsa.edu.pe</span>
+                  <span>Administrativo: lucia.ejemplo@unsa.edu.pe</span>
+                  <span>Contraseña de ejemplo: Epcc2026!</span>
+                </div>
 
-        <div className="story-content">
-          <img className="epcc-logo" src="/epcc.jpg" alt="Computer Science · EPCC - UNSA" /><h1>¡Bienvenido de nuevo!</h1><p>El equipo para tus ideas,<br />a un préstamo de distancia.</p>
-          <div className="login-access-types">
-            <span>Estudiantes</span>
-            <span>Profesores</span>
-            <span>Administrativos</span>
+              </details>
+            </>}
+    
+            <small className="login-note">Escuela Profesional de Ciencia de la Computación</small>
+
           </div>
-          <small>Tu cuenta define las opciones disponibles</small>
+
+        </section>
+
+        <section className="login-story">
+
+          <span className="story-tag"><i /> EPCC · UNSA</span>
+
+          <div className="story-content">
+            
+            <img className="epcc-logo" src="/epcc.jpg" alt="Computer Science · EPCC - UNSA" />
+            <h1>¡Bienvenido de nuevo!</h1>
+            <p>El equipo para tus ideas,<br />a un préstamo de distancia.</p>
+
+            <div className="login-access-types">
+              <span>Estudiantes</span>
+              <span>Profesores</span>
+              <span>Administrativos</span>
+            </div>
+
+            <small>Tu cuenta define las opciones disponibles</small>
+
+          </div>
+
+          <footer>CIENCIA DE LA COMPUTACIÓN 
+            <span>AREQUIPA, PERÚ</span>
+          </footer>
+
+        </section>
+
         </div>
-
-        <footer>CIENCIA DE LA COMPUTACIÓN <span>AREQUIPA, PERÚ</span></footer>
-      </section>
-
-      </div>
-    </main>
-  );
-}
+        
+      </main>
+    );
+  }

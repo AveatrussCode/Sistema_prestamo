@@ -53,7 +53,7 @@ export default function CatalogoPage({ onReservar, administrador = false }: { on
   const filtered = Boolean(busqueda || categoriaId || estado)
   function clear() { setBusqueda(''); setCategoriaId(''); setEstado('') }
 
-  return <div className="page-catalogo">
+  return (<div className="page-catalogo">
     <header className="topbar">
       <div>
         <span className="section-eyebrow">RECURSOS PARA TUS IDEAS</span>
@@ -156,5 +156,5 @@ export default function CatalogoPage({ onReservar, administrador = false }: { on
     )}
     
     {administrador && formOpen && <EquipoForm equipo={editing} categorias={categorias} onClose={() => setFormOpen(false)} onCategoria={c => setCategorias(current => [...current, c])} onSaved={o => { setFormOpen(false); setNotice(`${o.nombre}: ${editing ? 'cambios guardados' : 'equipo registrado'}.`); void refresh() }} />}
-  </div>
+  </div>);
 }

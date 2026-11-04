@@ -55,7 +55,8 @@ export default function RegistroCuentaForm({ onCancel }: { onSuccess?: () => voi
       <h2>Crea tu cuenta</h2>
       <p>Únete al sistema de préstamos de la EPCC. Tu solicitud será revisada por un administrador.</p>
       <form onSubmit={submit}>
-        <fieldset disabled={busy}>
+        <fieldset disabled={busy}>          
+          {/*  aca elijes q tipo de uusario quiere registrarse  */}
           <div className="registro-types" role="group" aria-label="Tipo de cuenta">
             {(['Estudiante', 'Profesor', 'Administrativo'] as const).map(t => (
               <button type="button" key={t} className={form.tipo === t ? 'active' : ''}
@@ -77,7 +78,7 @@ export default function RegistroCuentaForm({ onCancel }: { onSuccess?: () => voi
                 value={form.correo} onChange={e => setForm({ ...form, correo: e.target.value })} />
             </label>
             <label>Código institucional
-              <input required maxLength={50}
+              <input autoFocus required minLength={8}  maxLength={8}
                 value={form.codigo} onChange={e => setForm({ ...form, codigo: e.target.value })} />
             </label>
           </div>

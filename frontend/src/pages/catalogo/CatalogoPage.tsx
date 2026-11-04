@@ -75,7 +75,7 @@ export default function CatalogoPage({ onReservar, administrador = false }: { on
         <label className="catalog-search">
           <span className="sr-only">Buscar equipos</span>
           <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="10" cy="10" r="6" /><path d="m15 15 5 5" /></svg>
-          <input type="search" placeholder="Busca por nombre, descripción o categoría…" value={busqueda} onChange={e => setBusqueda(e.target.value)} />
+          <input type="search" placeholder="      Buscar por nombre, descripción o categoría" value={busqueda} onChange={e => setBusqueda(e.target.value)} />
         </label>
         <label className="catalog-status-filter">
           <span className="sr-only">Filtrar disponibilidad</span>

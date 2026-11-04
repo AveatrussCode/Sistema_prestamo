@@ -113,7 +113,7 @@ export default function MiPerfilPage({ onSaved }: { onSaved: (user: SessionUser)
               {!profile.administrador && (
                 <>
                   <dt>Confiabilidad</dt>
-                  <dd>{profile.credibilidad}/100</dd>
+                  <dd>{profile.credibilidad}/{profile.tipo === 'estudiante' ? '100' : '200'}</dd>
                 </>
               )}
             </dl>

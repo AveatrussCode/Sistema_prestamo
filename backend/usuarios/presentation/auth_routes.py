@@ -224,7 +224,7 @@ async def registrar(
         user = ProfesorModel(
             nombre=nombre, correo_institucional=correo, codigo_institucional=codigo,
             tipo='profesor', estado=EstadoUsuario.PENDIENTE_APROBACION,
-            credibilidad=100, rol_id=rol_basico.id,
+            credibilidad=200, rol_id=rol_basico.id,
             departamento='Ciencia de la Computación', especialidad=especialidad.strip(),
             fecha_solicitud=datetime.now(timezone.utc).replace(tzinfo=None),
             verificado_externo=valido,
@@ -235,7 +235,7 @@ async def registrar(
         user = AdministrativoModel(
             nombre=nombre, correo_institucional=correo, codigo_institucional=codigo,
             tipo='administrativo', estado=EstadoUsuario.PENDIENTE_APROBACION,
-            credibilidad=100, rol_id=rol_basico.id,
+            credibilidad=200, rol_id=rol_basico.id,
             departamento='Ciencia de la Computación',
             area=area.strip(), cargo=cargo.strip(),
             fecha_solicitud=datetime.now(timezone.utc).replace(tzinfo=None),

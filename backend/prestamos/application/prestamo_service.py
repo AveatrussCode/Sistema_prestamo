@@ -116,19 +116,35 @@ class PrestamoService:
         return self.db.scalars(query).all()
 
 
-def prestamo_dict(modelo: PrestamoModel):
+def prestamo_dict(modelo: PrestamoModel, db: Session = None):
     entidad = Prestamo(modelo.id, modelo.usuario_id, modelo.objeto_id, modelo.fecha_inicio,
                        modelo.fecha_devolucion_prevista, modelo.fecha_devolucion_real, modelo.estado)
-    return dict(id=modelo.id, reserva_id=modelo.reserva_id, usuario_id=modelo.usuario_id,
-                objeto_id=modelo.objeto_id, entregado_por=modelo.entregado_por,
-                usuario=modelo.usuario_nombre, equipo=modelo.objeto_nombre,
-                fecha_inicio=modelo.fecha_inicio, fecha_devolucion_prevista=modelo.fecha_devolucion_prevista,
-                fecha_devolucion_real=modelo.fecha_devolucion_real,
-                estado='VENCIDO' if entidad.esta_vencido() else modelo.estado.name,
-                observaciones_entrega=modelo.observaciones_entrega,
-                devolucion=None if modelo.devolucion is None else dict(
-                    fecha=modelo.devolucion.fecha_devolucion,
-                    estado_fisico=modelo.devolucion.estado_fisico.value,
-                    observaciones=modelo.devolucion.observaciones,
-                    recibido_por=modelo.devolucion.recibido_por,
-                    fuera_de_plazo=modelo.devolucion.fecha_devolucion > modelo.fecha_devolucion_prevista))
+    
+    # Verificamos si el equipo tiene imagen consultando la tabla objetos
+    tiene_imagen = False
+    if db:
+        objeto_db = db.get(ObjetoModel, modelo.objeto_id)
+        tiene_imagen = bool(objeto_db and objeto_db.imagen_blob)
+
+    return dict(
+        id=modelo.id, 
+        reserva_id=modelo.reserva_id, 
+        usuario_id=modelo.usuario_id,
+        objeto_id=modelo.objeto_id, 
+        entregado_por=modelo.entregado_por,
+        usuario=modelo.usuario_nombre, 
+        equipo=modelo.objeto_nombre,
+        objeto_tiene_imagen=tiene_imagen, # <--- NUEVO CAMPO
+        fecha_inicio=modelo.fecha_inicio, 
+        fecha_devolucion_prevista=modelo.fecha_devolucion_prevista,
+        fecha_devolucion_real=modelo.fecha_devolucion_real,
+        estado='VENCIDO' if entidad.esta_vencido() else modelo.estado.name,
+        observaciones_entrega=modelo.observaciones_entrega,
+        devolucion=None if modelo.devolucion is None else dict(
+            fecha=modelo.devolucion.fecha_devolucion,
+            estado_fisico=modelo.devolucion.estado_fisico.value,
+            observaciones=modelo.devolucion.observaciones,
+            recibido_por=modelo.devolucion.recibido_por,
+            fuera_de_plazo=modelo.devolucion.fecha_devolucion > modelo.fecha_devolucion_prevista
+        )
+    )

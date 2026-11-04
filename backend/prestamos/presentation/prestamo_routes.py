@@ -23,15 +23,15 @@ class DevolucionCreate(BaseModel):
 
 @router.post('/', status_code=201)
 def entregar(datos: EntregaCreate, actor=Depends(administrador), db: Session = Depends(get_db)):
-    return prestamo_dict(PrestamoService(db).entregar(datos.reserva_id, actor.id, datos.observaciones))
+    return prestamo_dict(PrestamoService(db).entregar(datos.reserva_id, actor.id, datos.observaciones), db)
 
 
 @router.post('/{prestamo_id}/devolucion', status_code=201)
 def devolver(prestamo_id: int, datos: DevolucionCreate, actor=Depends(administrador), db: Session = Depends(get_db)):
-    return prestamo_dict(PrestamoService(db).devolver(prestamo_id, actor.id, datos.estado_fisico, datos.observaciones))
+    return prestamo_dict(PrestamoService(db).devolver(prestamo_id, actor.id, datos.estado_fisico, datos.observaciones), db)
 
 
 @router.get('/')
 def listar(actor=Depends(usuario_actual), db: Session = Depends(get_db)):
     admin = bool(actor.rol and actor.rol.nombre == 'ADMIN')
-    return [prestamo_dict(p) for p in PrestamoService(db).listar(None if admin else actor.id)]
+    return [prestamo_dict(p, db) for p in PrestamoService(db).listar(None if admin else actor.id)]

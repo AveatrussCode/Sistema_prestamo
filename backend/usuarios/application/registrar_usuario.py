@@ -26,7 +26,7 @@ class RegistrarUsuarioUseCase:
 
         tipo = datos_usuario.get("tipo")
         estado_inicial = EstadoUsuario.ACTIVO
-        credibilidad_inicial = 100.0
+        credibilidad_inicial = 100.0 if tipo == "Estudiante" else 200.0
 
         # Determinar el rol a asignar (automático según el tipo)
         rol_asignado_id = self._obtener_rol_por_defecto(tipo)

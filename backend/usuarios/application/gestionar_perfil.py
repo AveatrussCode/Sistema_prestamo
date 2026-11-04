@@ -68,17 +68,17 @@ class GestionarCredibilidadUseCase:
 
         if nueva_credibilidad < 0:
             nueva_credibilidad = 0.0
-        elif nueva_credibilidad > 100:
-            nueva_credibilidad = 100.0
+        elif nueva_credibilidad > 200:
+            nueva_credibilidad = 200.0
 
         return self.usuario_repository.actualizar_credibilidad(
             id_usuario, nueva_credibilidad
         )
 
     def establecer_credibilidad(self, id_usuario: int, valor: float, motivo: str = ""):
-        """Establece un valor específico de credibilidad (0-100)."""
-        if valor < 0 or valor > 100:
-            raise ValueError("La credibilidad debe estar entre 0 y 100")
+        """Establece un valor específico de credibilidad."""
+        if valor < 0 or valor > 200:
+            raise ValueError("La credibilidad debe estar entre 0 y 200")
 
         if not motivo or not motivo.strip():
             raise ValueError("El motivo del ajuste es obligatorio")

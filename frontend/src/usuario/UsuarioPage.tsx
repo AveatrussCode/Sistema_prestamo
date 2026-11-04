@@ -261,7 +261,7 @@ export default function UsuarioPage() {
                       <td><strong>{u.codigo}</strong><small>{u.tipo}</small></td>
                       <td>{u.rol ?? 'Sin asignar'}</td>
                       <td><span className={`usuario-badge ${u.estado?.toLowerCase()}`}>{u.estado ?? 'Sin estado'}</span></td>
-                      <td><span>{u.credibilidad}/100</span><meter min="0" max="100" value={u.credibilidad} aria-label={`Confiabilidad de ${u.nombre}`} /></td>
+                      <td><span>{u.credibilidad}/{u.tipo === 'estudiante' ? '100' : '200'}</span><meter min="0" max={u.tipo === 'estudiante' ? "100" : "200"}  value={u.credibilidad} aria-label={`Confiabilidad de ${u.nombre}`} /></td>
                       <td>
                         <div className="usuario-actions">
                           <button onClick={()=>edit(u)}>Editar</button>
@@ -440,8 +440,17 @@ export default function UsuarioPage() {
                 )}
                 {action==='credibilidad' && (
                   <>
-                    <label>Confiabilidad (0 a 100)
-                      <input autoFocus type="number" required min="0" max="100" step="0.1" value={value} onChange={e=>setValue(e.target.value)} />
+                    <label>Confiabilidad (0 a {selected.tipo === 'estudiante' ? '100' : '200'})
+                      <input 
+                        autoFocus 
+                        type="number" 
+                        required 
+                        min="0" 
+                        max={selected.tipo === 'estudiante' ? "100" : "200"} 
+                        step="0.1" 
+                        value={value} 
+                        onChange={e=>setValue(e.target.value)} 
+                      />
                     </label>
                     <label>Motivo del ajuste
                       <input required pattern=".*\S.*" value={reason} onChange={e=>setReason(e.target.value)} />

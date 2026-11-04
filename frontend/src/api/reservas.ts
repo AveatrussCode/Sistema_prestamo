@@ -2,18 +2,17 @@ import { api } from "./client";
 
 export type EstadoReserva = "PENDIENTE" | "CONFIRMADA" | "FINALIZADA" | "CANCELADA" | "VENCIDA";
 
-// Es exactamente el JSON que devuelve el backend (reserva_routes.py -> _a_dict)
 export interface Reserva {
   id: number;
   usuario_id: number;
   objeto_id: number;
-  fecha_reserva: string; // "2026-10-20"
+  fecha_reserva: string;
   fecha_inicio: string;
   fecha_fin: string;
   estado: EstadoReserva;
+  objeto_tiene_imagen?: boolean; // <--- NUEVO CAMPO
 }
 
-// Es exactamente lo que espera el backend (reserva_routes.py -> ReservaCreate)
 export interface NuevaReserva {
   usuario_id: number;
   objeto_id: number;

@@ -1,5 +1,4 @@
 from typing import Optional
-
 from sqlalchemy import select, or_
 from sqlalchemy.orm import Session
 
@@ -24,10 +23,10 @@ class SqlObjetoRepository(ObjetoRepository):
             categoria_id=m.categoria_id,
             estado_disponibilidad=m.estado_disponibilidad,
             estado_fisico=m.estado_fisico,
-            imagen_path=m.imagen_path,
+            tiene_imagen=bool(m.imagen_blob), # <--- NUEVO
         )
 
-    def guardar(self, objeto: Objeto) -> Objeto:
+    def guardar(self, objeto: Objeto, imagen_bytes: bytes = None) -> Objeto:
         if objeto.id is None:
             modelo = ObjetoModel()
             self.db.add(modelo)
@@ -35,12 +34,17 @@ class SqlObjetoRepository(ObjetoRepository):
             modelo = self.db.get(ObjetoModel, objeto.id)
             if modelo is None:
                 raise NotFoundError(f"Objeto {objeto.id} no existe.")
+        
         modelo.nombre = objeto.nombre
         modelo.descripcion = objeto.descripcion
         modelo.categoria_id = objeto.categoria_id
         modelo.estado_disponibilidad = objeto.estado_disponibilidad
         modelo.estado_fisico = objeto.estado_fisico
-        modelo.imagen_path = objeto.imagen_path
+        
+        # Si se envía una nueva imagen, se guarda en el campo binario
+        if imagen_bytes is not None:
+            modelo.imagen_blob = imagen_bytes
+
         self.db.commit()
         self.db.refresh(modelo)
         return self._a_dominio(modelo)
@@ -68,7 +72,6 @@ class SqlObjetoRepository(ObjetoRepository):
                 ObjetoModel.estado_disponibilidad == EstadoDeDisponibilidad.DISPONIBLE
             )
         else:
-            # por defecto NO mostrar los dados de baja
             consulta = consulta.where(
                 ObjetoModel.estado_disponibilidad != EstadoDeDisponibilidad.DADO_DE_BAJA
             )

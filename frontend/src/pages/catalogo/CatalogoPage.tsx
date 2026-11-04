@@ -53,7 +53,7 @@ export default function CatalogoPage({ onReservar, administrador = false }: { on
   const filtered = Boolean(busqueda || categoriaId || estado)
   function clear() { setBusqueda(''); setCategoriaId(''); setEstado('') }
 
-  return (<div className="page-catalogo">
+  return <div className="page-catalogo">
     <header className="topbar">
       <div>
         <span className="section-eyebrow">RECURSOS PARA TUS IDEAS</span>
@@ -75,7 +75,7 @@ export default function CatalogoPage({ onReservar, administrador = false }: { on
         <label className="catalog-search">
           <span className="sr-only">Buscar equipos</span>
           <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="10" cy="10" r="6" /><path d="m15 15 5 5" /></svg>
-          <input type="search" placeholder="      Buscar por nombre, descripción o categoría" value={busqueda} onChange={e => setBusqueda(e.target.value)} />
+          <input type="search" placeholder="Busca por nombre, descripción o categoría…" value={busqueda} onChange={e => setBusqueda(e.target.value)} />
         </label>
         <label className="catalog-status-filter">
           <span className="sr-only">Filtrar disponibilidad</span>
@@ -123,10 +123,9 @@ export default function CatalogoPage({ onReservar, administrador = false }: { on
           const canReserve = reservable(o)
           return (
             <article className="objeto-card" key={o.id}>
-              {/* --- BLOQUE VISUAL MODIFICADO --- */}
-              <div className={`equipment-visual visual-${o.imagen_url ? 'img' : normalize(category).includes('laptop') ? 'laptop' : normalize(category).includes('electron') ? 'electronics' : normalize(category).includes('camara') ? 'camera' : 'other'}`}>
+              <div className={`equipment-visual visual-${o.tiene_imagen ? 'img' : normalize(category).includes('laptop') ? 'laptop' : normalize(category).includes('electron') ? 'electronics' : normalize(category).includes('camara') ? 'camera' : 'other'}`}>
                 <span className={`equipment-status status-${o.estado_disponibilidad.toLowerCase()}`}><i />{etiquetas[o.estado_disponibilidad]}</span>
-                {o.imagen_url ? (
+                {o.tiene_imagen ? (
                   <img src={imagenUrl(o.id)} alt={o.nombre} className="equipment-real-img" />
                 ) : (
                   <EquipoIcon categoria={category} />
@@ -156,5 +155,5 @@ export default function CatalogoPage({ onReservar, administrador = false }: { on
     )}
     
     {administrador && formOpen && <EquipoForm equipo={editing} categorias={categorias} onClose={() => setFormOpen(false)} onCategoria={c => setCategorias(current => [...current, c])} onSaved={o => { setFormOpen(false); setNotice(`${o.nombre}: ${editing ? 'cambios guardados' : 'equipo registrado'}.`); void refresh() }} />}
-  </div>);
+  </div>
 }

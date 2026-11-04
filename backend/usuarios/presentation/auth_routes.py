@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, Upload
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import Literal
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import Column, ForeignKey, Integer, String, DateTime
+from sqlalchemy import Column, ForeignKey, Integer, String, DateTime, LargeBinary
 from sqlalchemy.orm import Session
 from backend.database import Base, get_db
 from backend.usuarios.infraestructure.models import (
@@ -22,11 +22,13 @@ import os
 from pathlib import Path
 
 
-# ---- Modelos de cuenta y sesión (los mismos de antes) ----
+# ---- Modelos de cuenta y sesión ----
 class CuentaModel(Base):
     __tablename__ = 'cuentas'
     usuario_id = Column(Integer, ForeignKey('usuarios.id'), primary_key=True)
     password_hash = Column(String, nullable=False)
+    constancia_blob = Column(LargeBinary, nullable=True)
+    constancia_nombre = Column(String, nullable=True)
 
 
 class SesionModel(Base):
@@ -38,27 +40,23 @@ class SesionModel(Base):
 
 router = APIRouter(prefix='/auth', tags=['Autenticacion'])
 COOKIE = 'epcc_session'
-
-# ---- Directorio de constancias ----
-UPLOAD_DIR = Path(os.environ.get('MATRICULAS_DIR',
-                                 str(Path(__file__).resolve().parents[3] / 'uploads' / 'matriculas')))
 MAX_BYTES = 5 * 1024 * 1024
 
 
-def constancia_path(usuario_id: int) -> Path:
-    return UPLOAD_DIR / f'{usuario_id}.pdf'
-
-
-def guardar_pdf(usuario_id: int, contenido: bytes):
-    """Valida y guarda el PDF. Lanza HTTPException si es inválido."""
+def guardar_pdf(usuario_id: int, contenido: bytes, db: Session):
+    """Valida y guarda el PDF en la BD. Lanza HTTPException si es inválido."""
     if not contenido:
         raise HTTPException(422, 'La constancia de matrícula es obligatoria.')
     if len(contenido) > MAX_BYTES:
         raise HTTPException(413, 'El PDF no debe superar los 5 MB.')
     if not contenido.startswith(b'%PDF-') or b'%%EOF' not in contenido[-1024:]:
         raise HTTPException(400, 'El archivo no tiene un formato PDF válido.')
-    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-    constancia_path(usuario_id).write_bytes(contenido)
+    
+    cuenta = db.get(CuentaModel, usuario_id)
+    if cuenta:
+        cuenta.constancia_blob = contenido
+        cuenta.constancia_nombre = f"matricula_{usuario_id}.pdf"
+        db.commit()
 
 
 # ---- Seguridad de contraseñas ----
@@ -100,7 +98,18 @@ def administrador(user=Depends(usuario_actual)):
     return user
 
 
-def perfil(user):
+def perfil(user, db: Session = None):
+    # Verificamos si la cuenta tiene el PDF guardado en la BD
+    if db is None:
+        from backend.database import SessionLocal
+        db = SessionLocal()
+        cuenta = db.get(CuentaModel, user.id)
+        tiene_pdf = bool(cuenta and cuenta.constancia_blob)
+        db.close()
+    else:
+        cuenta = db.get(CuentaModel, user.id)
+        tiene_pdf = bool(cuenta and cuenta.constancia_blob)
+
     datos = {
         'id': user.id, 'nombre': user.nombre, 'correo': user.correo_institucional,
         'tipo': user.tipo,
@@ -110,7 +119,7 @@ def perfil(user):
         codigo=user.codigo_institucional, credibilidad=user.credibilidad,
         carrera=user.carrera, especialidad=user.especialidad,
         departamento=user.departamento, area=user.area, cargo=user.cargo,
-        constancia_matricula=user.tipo == 'estudiante' and constancia_path(user.id).is_file()
+        constancia_matricula=bool(user.tipo == 'estudiante' and tiene_pdf)
     )
     return datos
 
@@ -129,7 +138,7 @@ def login(datos: LoginRequest, response: Response, request: Request, db: Session
     account = db.get(CuentaModel, user.id) if user else None
     if not account or not verificar(datos.password, account.password_hash):
         raise HTTPException(401, 'Correo o contraseña incorrectos.')
-    # Mensajes específicos según estado
+    
     if user.estado == EstadoUsuario.PENDIENTE_APROBACION:
         raise HTTPException(403, 'Tu solicitud está en revisión. Te avisaremos por correo cuando sea aprobada.')
     if user.estado == EstadoUsuario.INACTIVO and user.motivo_rechazo:
@@ -151,12 +160,12 @@ def login(datos: LoginRequest, response: Response, request: Request, db: Session
     ))
     db.commit()
     response.set_cookie(COOKIE, token, httponly=True, samesite='lax', max_age=8 * 3600, path='/')
-    return perfil(user)
+    return perfil(user, db)
 
 
 @router.get('/me')
-def me(user=Depends(usuario_actual)):
-    return perfil(user)
+def me(user=Depends(usuario_actual), db: Session = Depends(get_db)):
+    return perfil(user, db)
 
 
 @router.post('/logout')
@@ -170,7 +179,7 @@ def logout(request: Request, response: Response, db: Session = Depends(get_db)):
     return {'mensaje': 'Sesion cerrada'}
 
 
-# ---- Registro público (multipart/form-data) ----
+# ---- Registro público ----
 @router.post('/register', status_code=201)
 async def registrar(
     nombre: str = Form(...),
@@ -188,7 +197,6 @@ async def registrar(
     correo = correo.strip().lower()
     codigo = codigo.strip()
 
-    # Validaciones básicas
     if len(nombre) < 2:
         raise HTTPException(422, 'El nombre debe tener al menos 2 caracteres.')
     if len(password) < 8:
@@ -197,16 +205,12 @@ async def registrar(
     if not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', correo):
         raise HTTPException(422, 'Ingresa un correo válido.')
 
-    # Duplicados
     if db.query(UsuarioModel).filter(UsuarioModel.correo_institucional == correo).first():
         raise HTTPException(409, 'Este correo ya está registrado. Inicia sesión con tu cuenta.')
     if db.query(UsuarioModel).filter(UsuarioModel.codigo_institucional == codigo).first():
         raise HTTPException(409, 'Este código institucional ya está registrado.')
 
-    # Validación externa (profesores / administrativos)
     valido, motivo = validador_institucional.verificar(tipo, correo, codigo)
-
-    # PDF obligatorio solo para estudiante
     pdf_bytes = await constancia.read() if constancia else None
     if tipo == 'Estudiante' and not pdf_bytes:
         raise HTTPException(422, 'La constancia de matrícula (PDF) es obligatoria.')
@@ -215,7 +219,6 @@ async def registrar(
     if not rol_basico:
         raise HTTPException(503, 'No se pudo preparar la cuenta. Contacta al administrador.')
 
-    # Crear el modelo según el tipo
     if tipo == 'Estudiante':
         user = EstudianteModel(
             nombre=nombre, correo_institucional=correo, codigo_institucional=codigo,
@@ -234,7 +237,7 @@ async def registrar(
             fecha_solicitud=datetime.now(timezone.utc).replace(tzinfo=None),
             verificado_externo=valido,
         )
-    else:  # Administrativo
+    else:
         if not area.strip() or not cargo.strip():
             raise HTTPException(422, 'Área y cargo son obligatorios para administrativos.')
         user = AdministrativoModel(
@@ -249,10 +252,14 @@ async def registrar(
 
     try:
         db.add(user)
-        db.flush()  # obtiene el ID antes del commit
-        db.add(CuentaModel(usuario_id=user.id, password_hash=hash_password(password)))
+        db.flush()
+        cuenta = CuentaModel(usuario_id=user.id, password_hash=hash_password(password))
+        db.add(cuenta)
+        
         if pdf_bytes:
-            guardar_pdf(user.id, pdf_bytes)
+            cuenta.constancia_blob = pdf_bytes
+            cuenta.constancia_nombre = f"matricula_{user.id}.pdf"
+            
         db.commit()
         db.refresh(user)
     except IntegrityError:
@@ -265,7 +272,6 @@ async def registrar(
         db.rollback()
         raise HTTPException(500, f'Error al crear la cuenta: {e}')
 
-    # Notificar por correo (modo consola por defecto)
     correo_solicitud_recibida(nombre, correo, tipo)
 
     return {
@@ -298,21 +304,15 @@ def actualizar_mi_perfil(datos: PerfilRequest, user=Depends(usuario_actual), db:
         user.especialidad = datos.especialidad.strip()
     db.commit()
     db.refresh(user)
-    return perfil(user)
+    return perfil(user, db)
 
 @router.put('/me/password')
 def cambiar_mi_password(datos: CambiarPasswordRequest, user=Depends(usuario_actual), db: Session = Depends(get_db)):
-    """Permite al usuario autenticado cambiar su propia contraseña."""
     cuenta = db.get(CuentaModel, user.id)
     if not cuenta:
         raise HTTPException(404, 'No se encontró la cuenta de usuario.')
-        
-    # Verificar que la contraseña actual sea correcta
     if not verificar(datos.password_actual, cuenta.password_hash):
         raise HTTPException(401, 'La contraseña actual es incorrecta.')
-        
-    # Actualizar con la nueva contraseña encriptada
     cuenta.password_hash = hash_password(datos.password_nueva)
     db.commit()
-    
     return {'mensaje': 'Contraseña actualizada correctamente.'}

@@ -87,7 +87,7 @@ export default function EquipoForm({ equipo, categorias, onClose, onSaved, onCat
           <div style={{ marginTop: '10px', marginBottom: '15px' }}>
             <label style={{ marginBottom: '8px', display: 'block' }}>Imagen de previsualización (JPG, PNG o WEBP - máx 2MB)</label>
             
-            {equipo && equipo.imagen_url && !imagen && (
+            {equipo && equipo.tiene_imagen && !imagen && (
               <div style={{ marginBottom: '10px' }}>
                 <p style={{ fontSize: '11px', marginBottom: '5px', color: '#64748b' }}>Imagen actual:</p>
                 <img src={imagenUrl(equipo.id)} alt="Previsualización" style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e2e8f0' }} />

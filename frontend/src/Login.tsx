@@ -74,7 +74,7 @@ export default function Login() {
 
               <button type="button" className="login-register-switch" disabled={busy} onClick={() => { setRegistering(true); setError(''); setPassword('') }}>
                 ¿No tienes cuenta? 
-                <strong>Crear cuenta</strong>
+                <strong> Crear cuenta</strong>
               </button>
 
               <details className="login-demo">

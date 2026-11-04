@@ -2,6 +2,7 @@
 import hashlib
 import hmac
 import secrets
+import re
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, UploadFile, File, Form
 from pydantic import BaseModel, Field, ConfigDict, field_validator
@@ -21,7 +22,6 @@ from backend.shared.mailer import (
 import os
 from pathlib import Path
 
-
 # ---- Modelos de cuenta y sesión ----
 class CuentaModel(Base):
     __tablename__ = 'cuentas'
@@ -30,18 +30,22 @@ class CuentaModel(Base):
     constancia_blob = Column(LargeBinary, nullable=True)
     constancia_nombre = Column(String, nullable=True)
 
-
 class SesionModel(Base):
     __tablename__ = 'sesiones'
     token_hash = Column(String, primary_key=True)
     usuario_id = Column(Integer, ForeignKey('usuarios.id'), nullable=False)
     expires_at = Column(DateTime, nullable=False)
 
-
 router = APIRouter(prefix='/auth', tags=['Autenticacion'])
 COOKIE = 'epcc_session'
 MAX_BYTES = 5 * 1024 * 1024
 
+# --- VALIDACIÓN DE DOMINIO INSTITUCIONAL ---
+def validar_correo_unsa(correo: str):
+    if not correo.endswith("@unsa.edu.pe"):
+        raise HTTPException(422, "El correo debe pertenecer al dominio institucional @unsa.edu.pe")
+    if not re.fullmatch(r'[^\s@]+@unsa\.edu\.pe', correo):
+        raise HTTPException(422, 'Ingresa un correo institucional válido.')
 
 def guardar_pdf(usuario_id: int, contenido: bytes, db: Session):
     """Valida y guarda el PDF en la BD. Lanza HTTPException si es inválido."""
@@ -58,23 +62,19 @@ def guardar_pdf(usuario_id: int, contenido: bytes, db: Session):
         cuenta.constancia_nombre = f"matricula_{usuario_id}.pdf"
         db.commit()
 
-
 # ---- Seguridad de contraseñas ----
 def hash_password(password: str) -> str:
     salt = secrets.token_hex(16)
     digest = hashlib.pbkdf2_hmac('sha256', password.encode(), salt.encode(), 600000).hex()
     return f'{salt}${digest}'
 
-
 def verificar(password: str, stored: str) -> bool:
     salt, digest = stored.split('$', 1)
     actual = hashlib.pbkdf2_hmac('sha256', password.encode(), salt.encode(), 600000).hex()
     return hmac.compare_digest(actual, digest)
 
-
 def token_hash(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
-
 
 # ---- Dependencias ----
 def usuario_actual(request: Request, db: Session = Depends(get_db)):
@@ -91,15 +91,12 @@ def usuario_actual(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(401, 'La cuenta no esta activa.')
     return user
 
-
 def administrador(user=Depends(usuario_actual)):
     if not user.rol or user.rol.nombre != 'ADMIN':
         raise HTTPException(403, 'Esta accion requiere una cuenta administrativa.')
     return user
 
-
 def perfil(user, db: Session = None):
-    # Verificamos si la cuenta tiene el PDF guardado en la BD
     if db is None:
         from backend.database import SessionLocal
         db = SessionLocal()
@@ -123,12 +120,10 @@ def perfil(user, db: Session = None):
     )
     return datos
 
-
 # ---- Login / logout / me ----
 class LoginRequest(BaseModel):
     correo: str
     password: str
-
 
 @router.post('/login')
 def login(datos: LoginRequest, response: Response, request: Request, db: Session = Depends(get_db)):
@@ -162,11 +157,9 @@ def login(datos: LoginRequest, response: Response, request: Request, db: Session
     response.set_cookie(COOKIE, token, httponly=True, samesite='lax', max_age=8 * 3600, path='/')
     return perfil(user, db)
 
-
 @router.get('/me')
 def me(user=Depends(usuario_actual), db: Session = Depends(get_db)):
     return perfil(user, db)
-
 
 @router.post('/logout')
 def logout(request: Request, response: Response, db: Session = Depends(get_db)):
@@ -177,7 +170,6 @@ def logout(request: Request, response: Response, db: Session = Depends(get_db)):
         db.commit()
     response.delete_cookie(COOKIE, path='/')
     return {'mensaje': 'Sesion cerrada'}
-
 
 # ---- Registro público ----
 @router.post('/register', status_code=201)
@@ -201,9 +193,9 @@ async def registrar(
         raise HTTPException(422, 'El nombre debe tener al menos 2 caracteres.')
     if len(password) < 8:
         raise HTTPException(422, 'La contraseña debe tener al menos 8 caracteres.')
-    import re
-    if not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', correo):
-        raise HTTPException(422, 'Ingresa un correo válido.')
+    
+    # Aplicamos la nueva validación
+    validar_correo_unsa(correo)
 
     if db.query(UsuarioModel).filter(UsuarioModel.correo_institucional == correo).first():
         raise HTTPException(409, 'Este correo ya está registrado. Inicia sesión con tu cuenta.')
@@ -280,7 +272,6 @@ async def registrar(
         'verificado_externo': valido,
         'advertencia': motivo if not valido else '',
     }
-
 
 # ---- Perfil propio ----
 class PerfilRequest(BaseModel):

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 
 from backend.database import get_db
-from backend.usuarios.presentation.auth_routes import hash_password, administrador, CuentaModel
+from backend.usuarios.presentation.auth_routes import hash_password, administrador, CuentaModel, validar_correo_unsa
 from backend.usuarios.application.registrar_usuario import RegistrarUsuarioUseCase
 from backend.usuarios.application.asignar_rol import AsignarRolUseCase
 from backend.usuarios.application.gestionar_perfil import (
@@ -139,6 +139,9 @@ def rechazar_usuario(id_usuario: int, request: RechazarRequest, db: Session = De
 # ---------- CRUD de Usuarios ----------
 @router.post("/", status_code=201)
 def crear_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
+    # Validamos el dominio
+    validar_correo_unsa(usuario.correo.strip().lower())
+    
     repo = UsuarioRepository(db)
     rol_repo = RolRepository(db)
     caso_uso = RegistrarUsuarioUseCase(repo, rol_repo)

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { listarCategorias, listarObjetos, imagenUrl } from '../../api/objetos'
+import { listarCategorias, listarObjetos, imagenUrl, eliminarObjeto } from '../../api/objetos'
 import type { Categoria, EstadoDisponibilidad, Objeto } from '../../api/objetos'
 import EquipoForm from './EquipoForm'
 import './catalogo.css'
@@ -32,6 +32,10 @@ export default function CatalogoPage({ onReservar, administrador = false }: { on
   const [estado, setEstado] = useState('')
   const [orden, setOrden] = useState('nombre')
 
+  // --- ESTADOS PARA ELIMINACIÓN ---
+  const [deleteTarget, setDeleteTarget] = useState<Objeto | null>(null)
+  const [deleteBusy, setDeleteBusy] = useState(false)
+
   const cargar = useCallback(() => {
     return Promise.all([listarObjetos(), administrador ? listarObjetos({ estado: 'DADO_DE_BAJA' }) : Promise.resolve([]), listarCategorias()])
       .then(([activos, bajas, cats]) => { setObjetos([...activos, ...bajas]); setCategorias(cats) })
@@ -52,6 +56,22 @@ export default function CatalogoPage({ onReservar, administrador = false }: { on
   
   const filtered = Boolean(busqueda || categoriaId || estado)
   function clear() { setBusqueda(''); setCategoriaId(''); setEstado('') }
+
+  // --- FUNCIÓN PARA ELIMINAR ---
+  async function handleEliminar() {
+    if (!deleteTarget) return
+    setDeleteBusy(true)
+    try {
+      await eliminarObjeto(deleteTarget.id)
+      setDeleteTarget(null)
+      setNotice(`El equipo "${deleteTarget.nombre}" ha sido eliminado permanentemente.`)
+      await refresh()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'No se pudo eliminar el equipo.')
+    } finally {
+      setDeleteBusy(false)
+    }
+  }
 
   return <div className="page-catalogo">
     <header className="topbar">
@@ -145,7 +165,23 @@ export default function CatalogoPage({ onReservar, administrador = false }: { on
                     {canReserve ? 'Reservar equipo' : 'No disponible para reservar'}
                     {canReserve && <span aria-hidden="true">↗</span>}
                   </button>
-                  {administrador && <button className="inventory-edit" aria-label={`Editar ${o.nombre}`} onClick={() => { setEditing(o); setNotice(''); setFormOpen(true) }}>Editar equipo <span aria-hidden="true">→</span></button>}
+                  
+                  {administrador && (
+                    <>
+                      <button className="inventory-edit" aria-label={`Editar ${o.nombre}`} onClick={() => { setEditing(o); setNotice(''); setFormOpen(true) }}>
+                        Editar equipo <span aria-hidden="true">→</span>
+                      </button>
+                      {o.estado_disponibilidad === 'DADO_DE_BAJA' && (
+                        <button 
+                          className="inventory-edit" 
+                          style={{ color: '#b91c1c', borderColor: '#fca5a5', background: '#fef2f2', marginTop: '5px' }} 
+                          onClick={() => setDeleteTarget(o)}
+                        >
+                          Eliminar permanentemente <span aria-hidden="true">🗑️</span>
+                        </button>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
             </article>
@@ -155,5 +191,33 @@ export default function CatalogoPage({ onReservar, administrador = false }: { on
     )}
     
     {administrador && formOpen && <EquipoForm equipo={editing} categorias={categorias} onClose={() => setFormOpen(false)} onCategoria={c => setCategorias(current => [...current, c])} onSaved={o => { setFormOpen(false); setNotice(`${o.nombre}: ${editing ? 'cambios guardados' : 'equipo registrado'}.`); void refresh() }} />}
+
+    {/* --- MODAL DE ELIMINACIÓN PERMANENTE --- */}
+    {deleteTarget && (
+      <div className="usuario-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+        <div style={{ background: 'white', padding: '30px', borderRadius: '12px', maxWidth: '400px', width: '90%', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+          <h2 style={{ fontSize: '20px', color: '#b91c1c', marginTop: 0 }}>¿Eliminar equipo permanentemente?</h2>
+          <p style={{ fontSize: '14px', color: '#475569', lineHeight: 1.5 }}>
+            Estás a punto de eliminar <strong>{deleteTarget.nombre}</strong> del sistema. Esta acción <strong>no se puede deshacer</strong> y borrará toda la información y la imagen del equipo.
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '25px' }}>
+            <button 
+              onClick={() => setDeleteTarget(null)} 
+              disabled={deleteBusy}
+              style={{ padding: '10px 16px', borderRadius: '6px', border: '1px solid #cbd5e1', background: 'white', cursor: 'pointer', fontWeight: 600 }}
+            >
+              Cancelar
+            </button>
+            <button 
+              onClick={handleEliminar} 
+              disabled={deleteBusy}
+              style={{ padding: '10px 16px', borderRadius: '6px', border: 'none', background: '#dc2626', color: 'white', cursor: 'pointer', fontWeight: 600 }}
+            >
+              {deleteBusy ? 'Eliminando…' : 'Sí, eliminar definitivamente'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
   </div>
 }

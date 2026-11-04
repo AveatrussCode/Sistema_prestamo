@@ -1,6 +1,12 @@
 import { api } from "./client";
 
-export type EstadoDisponibilidad = "DISPONIBLE" | "PRESTADO" | "RESERVADO" | "NO_DISPONIBLE" | "DADO_DE_BAJA";
+export type EstadoDisponibilidad =
+  | "DISPONIBLE"
+  | "PRESTADO"
+  | "RESERVADO"
+  | "NO_DISPONIBLE"
+  | "DADO_DE_BAJA";
+
 export type EstadoFisico = "BUENO" | "REGULAR" | "DANHADO";
 
 export interface Objeto {
@@ -10,7 +16,7 @@ export interface Objeto {
   categoria_id: number;
   estado_disponibilidad: EstadoDisponibilidad;
   estado_fisico: EstadoFisico;
-  tiene_imagen: boolean; // <--- Nuevo campo
+  tiene_imagen: boolean;
 }
 
 export interface Categoria {
@@ -40,9 +46,16 @@ export const listarCategorias = () => api<Categoria[]>("/categorias/");
 export type DatosObjeto = Omit<Objeto, 'id' | 'tiene_imagen'>;
 export const crearObjeto = (body: DatosObjeto) => api<Objeto>('/objetos/', { method: 'POST', body });
 export const editarObjeto = (id: number, body: DatosObjeto) => api<Objeto>(`/objetos/${id}`, { method: 'PUT', body });
+
+export const eliminarObjeto = async (id: number) => {
+  await api(`/objetos/${id}`, { method: 'DELETE' }).catch(err => {
+    if (err instanceof Error && err.message.includes('JSON')) return;
+    throw err;
+  });
+};
+
 export const crearCategoria = (nombre: string) => api<Categoria>('/categorias/', { method: 'POST', body: { nombre } });
 
-// Reutilizamos el endpoint pero ahora apunta a la BD
 export const imagenUrl = (id: number) => `${import.meta.env.VITE_API_URL ?? `${window.location.protocol}//${window.location.hostname}:8000`}/objetos/${id}/imagen`;
 
 export const subirImagenObjeto = async (id: number, file: File) => {

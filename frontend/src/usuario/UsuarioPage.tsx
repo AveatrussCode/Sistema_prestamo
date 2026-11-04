@@ -12,7 +12,6 @@ const mensaje = (e: unknown) => e instanceof Error ? e.message : 'No se pudo com
 const vacio: NuevoUsuario = { nombre: '', correo: '', codigo: '', tipo: 'Estudiante', password: '' }
 
 export default function UsuarioPage() {
-  // ---- Estados base ----
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [roles, setRoles] = useState<Rol[]>([])
   const [loading, setLoading] = useState(true)
@@ -31,7 +30,6 @@ export default function UsuarioPage() {
   const [value, setValue] = useState('')
   const [reason, setReason] = useState('')
 
-  // ---- Estados del flujo de aprobación ----
   const [tab, setTab] = useState<'usuarios' | 'solicitudes'>('usuarios')
   const [solicitudes, setSolicitudes] = useState<SolicitudPendiente[]>([])
   const [pendientes, setPendientes] = useState(0)
@@ -39,7 +37,6 @@ export default function UsuarioPage() {
   const [motivo, setMotivo] = useState('')
   const [solicitudesLoading, setSolicitudesLoading] = useState(false)
 
-  // ---- Carga de datos ----
   async function load() {
     setLoading(true); setError('')
     try {
@@ -72,7 +69,6 @@ export default function UsuarioPage() {
       .finally(() => setSolicitudesLoading(false))
   }, [tab])
 
-  // ---- CRUD de usuarios ----
   function newUser() {
     setPdf(null); setEditing(null); setForm({ ...vacio }); setError(''); setNotice(''); setOpen(true)
   }
@@ -92,6 +88,11 @@ export default function UsuarioPage() {
       const datos = { ...form, nombre: form.nombre.trim(), correo: form.correo.trim(), codigo: form.codigo.trim() }
       if (!datos.nombre || !datos.correo || !datos.codigo) throw new Error('Completa los campos obligatorios.')
       
+      // VALIDACIÓN DE DOMINIO
+      if (!datos.correo.toLowerCase().endsWith('@unsa.edu.pe')) {
+        throw new Error('El correo debe pertenecer al dominio institucional @unsa.edu.pe')
+      }
+
       if (editing) await editarUsuario(editing.id, { nombre: datos.nombre, correo: datos.correo })
       
       let id = editing?.id
@@ -141,7 +142,6 @@ export default function UsuarioPage() {
     }
   }
 
-  // ---- Acciones de aprobación ----
   async function handleAprobar(s: SolicitudPendiente) {
     if (!s.verificado_externo && !confirm('Este usuario no fue verificado automáticamente por el sistema externo. ¿Aprobar de todas formas?')) return
     setBusy(true); setError(''); setNotice('')
@@ -174,7 +174,6 @@ export default function UsuarioPage() {
     }
   }
 
-  // ---- Filtros y utilidades ----
   const filtered = usuarios.filter(u => 
     `${u.nombre} ${u.correo} ${u.codigo}`.toLowerCase().includes(search.toLowerCase()) && 
     (tipo === 'Todos' || u.tipo === tipo) && 
@@ -196,7 +195,6 @@ export default function UsuarioPage() {
         <button className="usuario-primary" onClick={newUser}>+ Registrar usuario</button>
       </header>
 
-      {/* --- Pestañas --- */}
       <div className="usuario-tabs" style={{ display: 'flex', gap: '10px', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
         <button 
           className={tab === 'usuarios' ? 'active' : ''} 
@@ -222,7 +220,6 @@ export default function UsuarioPage() {
       {!open && !selected && !rechazo && error && <p className="usuario-error" role="alert">{error}</p>}
       {notice && <p className="usuario-success" role="status">{notice}</p>}
 
-      {/* --- VISTA: USUARIOS ACTIVOS --- */}
       {tab === 'usuarios' && (
         <>
           <div className="usuario-stats">
@@ -297,7 +294,6 @@ export default function UsuarioPage() {
         </>
       )}
 
-      {/* --- VISTA: SOLICITUDES PENDIENTES --- */}
       {tab === 'solicitudes' && (
         <div className="usuario-list">
           <div style={{ padding: '0 0 15px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -367,7 +363,6 @@ export default function UsuarioPage() {
         </div>
       )}
 
-      {/* --- MODALES EXISTENTES (Crear/Editar y Acciones) --- */}
       {(open || selected) && !rechazo && (
         <div className="usuario-overlay" onKeyDown={e=>{if(e.key==='Escape') close()}}>
           <section className="usuario-modal" role="dialog" aria-modal="true" aria-labelledby="usuario-dialog-title">
@@ -383,7 +378,7 @@ export default function UsuarioPage() {
             {open ? (
               <form onSubmit={save}>
                 <label>Nombre completo<input autoFocus required maxLength={150} value={form.nombre} onChange={e=>setForm({...form,nombre:e.target.value})} /></label>
-                <label>Correo institucional<input type="email" required maxLength={200} value={form.correo} onChange={e=>setForm({...form,correo:e.target.value})} /></label>
+                <label>Correo institucional<input type="email" required maxLength={200} placeholder="ejemplo@unsa.edu.pe" value={form.correo} onChange={e=>setForm({...form,correo:e.target.value})} /></label>
                 {!editing && (
                   <>
                     <div className="usuario-form-row">
@@ -466,7 +461,6 @@ export default function UsuarioPage() {
         </div>
       )}
 
-      {/* --- MODAL DE RECHAZO --- */}
       {rechazo && (
         <div className="usuario-overlay">
           <section className="usuario-modal" role="dialog" aria-modal="true" aria-labelledby="rechazo-dialog-title">

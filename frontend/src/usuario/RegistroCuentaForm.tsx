@@ -25,6 +25,13 @@ export default function RegistroCuentaForm({ onCancel }: { onSuccess?: () => voi
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setError('')
+    
+    // VALIDACIÓN DE DOMINIO
+    if (!form.correo.toLowerCase().endsWith('@unsa.edu.pe')) {
+      setError('El correo debe pertenecer al dominio institucional @unsa.edu.pe')
+      return
+    }
+
     if (form.password !== confirm) { setError('Las contraseñas no coinciden.'); return }
     if (form.tipo === 'Estudiante' && !form.constancia) {
       setError('La constancia de matrícula (PDF) es obligatoria.'); return
@@ -56,7 +63,6 @@ export default function RegistroCuentaForm({ onCancel }: { onSuccess?: () => voi
       <p>Únete al sistema de préstamos de la EPCC. Tu solicitud será revisada por un administrador.</p>
       <form onSubmit={submit}>
         <fieldset disabled={busy}>          
-          {/*  aca elijes q tipo de uusario quiere registrarse  */}
           <div className="registro-types" role="group" aria-label="Tipo de cuenta">
             {(['Estudiante', 'Profesor', 'Administrativo'] as const).map(t => (
               <button type="button" key={t} className={form.tipo === t ? 'active' : ''}
@@ -74,7 +80,7 @@ export default function RegistroCuentaForm({ onCancel }: { onSuccess?: () => voi
           <div className="registro-row">
             <label>Correo institucional
               <input type="email" required maxLength={200} autoComplete="username"
-                placeholder="nombre@unsa.edu.pe"
+                placeholder="ejemplo@unsa.edu.pe"
                 value={form.correo} onChange={e => setForm({ ...form, correo: e.target.value })} />
             </label>
             <label>Código institucional

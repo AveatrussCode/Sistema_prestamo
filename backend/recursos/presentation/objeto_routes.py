@@ -39,7 +39,7 @@ def _a_dict(o: Objeto) -> dict:
         "categoria_id": o.categoria_id,
         "estado_disponibilidad": o.estado_disponibilidad.value,
         "estado_fisico": o.estado_fisico.value,
-        "tiene_imagen": o.tiene_imagen, # <--- Cambiado
+        "tiene_imagen": o.tiene_imagen,
     }
 
 # ---------- Endpoints ----------
@@ -91,7 +91,6 @@ async def subir_imagen(id_objeto: int, imagen: UploadFile = File(...), db: Sessi
     if len(contenido) > MAX_IMAGE_BYTES:
         raise HTTPException(413, "La imagen no debe superar los 2MB.")
     
-    # Se guarda en la BD directamente
     repo.guardar(obj, imagen_bytes=contenido)
     return {"mensaje": "Imagen guardada en la base de datos correctamente."}
 
@@ -100,8 +99,6 @@ def obtener_imagen(id_objeto: int, db: Session = Depends(get_db)):
     modelo = db.get(ObjetoModel, id_objeto)
     if not modelo or not modelo.imagen_blob:
         raise HTTPException(404, "Imagen no encontrada.")
-    
-    # Devolvemos el contenido binario
     return Response(content=modelo.imagen_blob, media_type="image/jpeg")
 
 # ---------- Endpoints de Detalle / Edición ----------
@@ -143,8 +140,15 @@ def actualizar_objeto(id_objeto: int, datos: ObjetoUpdate, db: Session = Depends
 
 @router.delete("/{id_objeto}", status_code=204, dependencies=[Depends(administrador)])
 def eliminar_objeto(id_objeto: int, db: Session = Depends(get_db)):
-    comprobar_sin_prestamo_activo(db, id_objeto)
     repo = SqlObjetoRepository(db)
+    obj = repo.buscar_por_id(id_objeto)
+    if not obj:
+        raise HTTPException(status_code=404, detail="Objeto no encontrado")
+        
+    # Solo bloqueamos la eliminación si el equipo tiene un préstamo activo Y no está dado de baja
+    if obj.estado_disponibilidad != EstadoDeDisponibilidad.DADO_DE_BAJA:
+        comprobar_sin_prestamo_activo(db, id_objeto)
+        
     try:
         repo.eliminar(id_objeto)
     except NotFoundError as e:

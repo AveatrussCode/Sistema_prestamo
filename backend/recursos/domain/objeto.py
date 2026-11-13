@@ -1,9 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
-
 from backend.recursos.domain.enums import EstadoDeDisponibilidad, EstadoFisico
 from backend.shared.errors import DomainError
-
 
 @dataclass
 class Objeto:
@@ -13,7 +11,7 @@ class Objeto:
     id: Optional[int] = None
     estado_disponibilidad: EstadoDeDisponibilidad = EstadoDeDisponibilidad.DISPONIBLE
     estado_fisico: EstadoFisico = EstadoFisico.BUENO
-    imagen_path: Optional[str] = None
+    tiene_imagen: bool = False # <--- Cambiado a booleano
 
     def __post_init__(self):
         if not self.nombre or not self.nombre.strip():

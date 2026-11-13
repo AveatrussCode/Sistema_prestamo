@@ -4,6 +4,7 @@ export interface Prestamo {
   usuario: string; equipo: string; fecha_inicio: string; fecha_devolucion_prevista: string;
   fecha_devolucion_real: string | null; estado: 'ACTIVO' | 'VENCIDO' | 'DEVUELTO' | 'CANCELADO';
   observaciones_entrega: string;
+  objeto_tiene_imagen?: boolean; // <--- NUEVO CAMPO
   devolucion: { fecha: string; estado_fisico: 'BUENO' | 'REGULAR' | 'DANHADO'; observaciones: string; recibido_por: number; fuera_de_plazo: boolean } | null;
 }
 export const listarPrestamos = () => api<Prestamo[]>('/prestamos/')

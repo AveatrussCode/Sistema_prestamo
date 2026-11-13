@@ -16,7 +16,7 @@ export interface Objeto {
   categoria_id: number;
   estado_disponibilidad: EstadoDisponibilidad;
   estado_fisico: EstadoFisico;
-  imagen_url: string | null;
+  tiene_imagen: boolean;
 }
 
 export interface Categoria {
@@ -43,19 +43,28 @@ export const listarObjetos = (filtros: FiltrosObjetos = {}) => {
 };
 
 export const listarCategorias = () => api<Categoria[]>("/categorias/");
-export type DatosObjeto = Omit<Objeto, 'id'>;
+export type DatosObjeto = Omit<Objeto, 'id' | 'tiene_imagen'>;
 export const crearObjeto = (body: DatosObjeto) => api<Objeto>('/objetos/', { method: 'POST', body });
 export const editarObjeto = (id: number, body: DatosObjeto) => api<Objeto>(`/objetos/${id}`, { method: 'PUT', body });
+
+export const eliminarObjeto = async (id: number) => {
+  await api(`/objetos/${id}`, { method: 'DELETE' }).catch(err => {
+    if (err instanceof Error && err.message.includes('JSON')) return;
+    throw err;
+  });
+};
+
 export const crearCategoria = (nombre: string) => api<Categoria>('/categorias/', { method: 'POST', body: { nombre } });
 
-import { API_URL } from "./client";
+export const imagenUrl = (id: number) => `${import.meta.env.VITE_API_URL ?? `${window.location.protocol}//${window.location.hostname}:8000`}/objetos/${id}/imagen`;
+
 export const subirImagenObjeto = async (id: number, file: File) => {
   const fd = new FormData();
   fd.append("imagen", file);
-  const res = await fetch(`${API_URL}/objetos/${id}/imagen`, {
+  const res = await fetch(`${import.meta.env.VITE_API_URL ?? `${window.location.protocol}//${window.location.hostname}:8000`}/objetos/${id}/imagen`, {
     method: "PUT",
     credentials: "include",
-    body: fd, // No establecer Content-Type manualmente
+    body: fd,
   });
   if (!res.ok) {
     const error = await res.json().catch(() => null);
@@ -63,5 +72,3 @@ export const subirImagenObjeto = async (id: number, file: File) => {
   }
   return res.json();
 };
-
-export const imagenUrl = (id: number) => `${API_URL}/objetos/${id}/imagen`;

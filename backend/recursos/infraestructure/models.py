@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Integer, String, Enum as SQLEnum
+from sqlalchemy import Boolean, Column, Integer, String, Enum as SQLEnum, LargeBinary
 from backend.database import Base
 from backend.recursos.domain.enums import EstadoDeDisponibilidad, EstadoFisico
 
@@ -27,4 +27,4 @@ class ObjetoModel(Base):
         default=EstadoFisico.BUENO,
         nullable=False,
     )
-    imagen_path = Column(String, nullable=True)
+    imagen_blob = Column(LargeBinary, nullable=True) # Guarda la imagen binaria

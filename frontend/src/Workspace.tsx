@@ -11,10 +11,11 @@ import type { Reserva } from './api/reservas'
 import ReservasPage from './pages/reservas/ReservasPage'
 import CatalogoPage from './pages/catalogo/CatalogoPage'
 import UsuarioPage from './usuario/UsuarioPage'
+import ReportesPage from './pages/reportes/ReportesPage'
 import './Workspace.css'
 import './VisualRefresh.css'
 
-type Page = 'Resumen' | 'Mi perfil' | 'Usuarios' | 'Equipos' | 'Reservas' | 'Préstamos'
+type Page = 'Resumen' | 'Mi perfil' | 'Usuarios' | 'Equipos' | 'Reservas' | 'Préstamos' | 'Reportes'
 
 const paths: Record<string, string> = {
   Resumen: 'M3 10 12 3l9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z',
@@ -23,6 +24,7 @@ const paths: Record<string, string> = {
   Usuarios: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M17 4a4 4 0 0 1 0 8M22 21v-2a4 4 0 0 0-3-4',
   'Mi perfil': 'M20 21v-2a6 6 0 0 0-6-6h-4a6 6 0 0 0-6 6v2M12 9a4 4 0 1 0 0-8 4 4 0 0 0 0 8',
   'Préstamos': 'M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4',
+  'Reportes': 'M4 20V10M10 20V4M16 20v-8M2 20h20',
   Salir: 'M9 3H3v18h6M14 7l5 5-5 5M8 12h11',
 }
 
@@ -80,7 +82,7 @@ export default function Workspace({ user, logout, onUserChange, logoutBusy = fal
 
         <span className="nav-caption">ESPACIO DE TRABAJO</span>
         <nav aria-label="Navegación principal">
-          {(['Resumen', 'Equipos', 'Reservas', 'Préstamos', 'Usuarios', 'Mi perfil'] as Page[]).filter(p => user.administrador || p !== 'Usuarios').map(
+          {(['Resumen', 'Equipos', 'Reservas', 'Préstamos', 'Usuarios', 'Reportes', 'Mi perfil'] as Page[]).filter(p => user.administrador || (p !== 'Usuarios' && p !== 'Reportes')).map(
 
             p => 
             <button key={p} aria-label={label(p)} aria-current={page === p ? 'page' : undefined} className={page === p ? 'selected' : ''} onClick={() => navigate(p)}>
@@ -156,7 +158,7 @@ export default function Workspace({ user, logout, onUserChange, logoutBusy = fal
 
           {page === 'Mi perfil' ? 
           <MiPerfilPage onSaved={onUserChange} /> : page === 'Usuarios' ? 
-          <UsuarioPage /> : page === 'Equipos' ? 
+          <UsuarioPage /> : page === 'Reportes' ? <ReportesPage /> : page === 'Equipos' ? 
           <CatalogoPage administrador={user.administrador} onReservar={id => { setSelectedObject(id); navigate('Reservas') }} /> : page === 'Reservas' ? 
           <ReservasPage user={user} objetoInicial={selectedObject} onEntregar={id => { setSelectedReserva(id); navigate('Préstamos') }} /> : page === 'Préstamos' ? 
           <PrestamosPage user={user} reservaInicial={selectedReserva} onReservas={() => navigate('Reservas')} /> : 

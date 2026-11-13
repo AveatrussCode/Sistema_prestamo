@@ -21,7 +21,11 @@ from backend.recursos.presentation.categoria_routes import router as categoria_r
 from backend.prestamos.presentation.reserva_routes import router as reserva_router
 from backend.prestamos.presentation.prestamo_routes import router as prestamo_router
 
+from backend.control.presentation.reporte_routes import router as reporte_router
+
 from backend.usuarios.infraestructure.seed_roles import seed_roles
+
+
 
 
 Base.metadata.create_all(bind=engine)
@@ -73,6 +77,7 @@ app.include_router(objeto_router, dependencies=[Depends(usuario_actual)])
 app.include_router(categoria_router, dependencies=[Depends(usuario_actual)])
 app.include_router(reserva_router, dependencies=[Depends(usuario_actual)])
 app.include_router(prestamo_router, dependencies=[Depends(usuario_actual)])
+app.include_router(reporte_router, dependencies=[Depends(administrador)])
 
 
 @app.get("/")

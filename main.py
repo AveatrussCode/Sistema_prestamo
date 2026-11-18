@@ -77,8 +77,6 @@ app.include_router(objeto_router, dependencies=[Depends(usuario_actual)])
 app.include_router(categoria_router, dependencies=[Depends(usuario_actual)])
 app.include_router(reserva_router, dependencies=[Depends(usuario_actual)])
 app.include_router(prestamo_router, dependencies=[Depends(usuario_actual)])
-# Reportes: basta con iniciar sesión; cada ruta de /reportes decide si exige ser administrador
-# (ver backend/control/presentation/reporte_routes.py). Cada usuario puede ver SU propio reporte.
 app.include_router(reporte_router, dependencies=[Depends(usuario_actual)])
 
 

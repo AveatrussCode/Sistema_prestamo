@@ -131,11 +131,11 @@ class ReportePeriodoService:
             tablas=[
                 Tabla("Actividad por día", [
                     Columna("dia", "Día"),
-                    Columna("prestamos", "Préstamos"),
-                    Columna("devoluciones", "Devoluciones"),
-                    Columna("reservas", "Reservas"),
+                    Columna("prestamos", "Préstamos realizados"),
+                    Columna("devoluciones", "Devoluciones de equipos"),
+                    Columna("reservas", "Reservas realizadas"),
                 ], filas_actividad),
-                Tabla("Reservas por estado", [
+                Tabla("Estado de reservas", [
                     Columna("estado", "Estado"),
                     Columna("cantidad", "Cantidad"),
                 ], filas_reservas_estado),

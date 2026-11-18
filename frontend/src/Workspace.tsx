@@ -43,7 +43,7 @@ export default function Workspace({ user, logout, onUserChange, logoutBusy = fal
   const [loading, setLoading] = useState(true)
   const dateLabel = new Intl.DateTimeFormat('es-PE', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date())
   const role = user.administrador ? 'Administrativo' : user.tipo === 'profesor' ? 'Profesor' : 'Estudiante'
-  const label = (p: Page) => p === 'Préstamos' && !user.administrador ? 'Mis préstamos' : p === 'Resumen' ? 'Inicio' : p === 'Equipos' ? 'Catálogo' : p === 'Reservas' && !user.administrador ? 'Mis reservas' : p
+  const label = (p: Page) => p === 'Préstamos' && !user.administrador ? 'Mis préstamos' : p === 'Resumen' ? 'Inicio' : p === 'Equipos' ? 'Catálogo' : p === 'Reservas' && !user.administrador ? 'Mis reservas' : p === 'Reportes' && !user.administrador ? 'Mi reporte' : p
   const load = useCallback(() => {
     return Promise.all([user.administrador ? listarUsuarios() : Promise.resolve([]), listarObjetos(), listarReservas()])
       .then(([u, o, r]) => { setUsers(u); setObjects(o); setReservations(r) })
@@ -82,7 +82,7 @@ export default function Workspace({ user, logout, onUserChange, logoutBusy = fal
 
         <span className="nav-caption">ESPACIO DE TRABAJO</span>
         <nav aria-label="Navegación principal">
-          {(['Resumen', 'Equipos', 'Reservas', 'Préstamos', 'Usuarios', 'Reportes', 'Mi perfil'] as Page[]).filter(p => user.administrador || (p !== 'Usuarios' && p !== 'Reportes')).map(
+          {(['Resumen', 'Equipos', 'Reservas', 'Préstamos', 'Usuarios', 'Reportes', 'Mi perfil'] as Page[]).filter(p => user.administrador || p !== 'Usuarios').map(
 
             p => 
             <button key={p} aria-label={label(p)} aria-current={page === p ? 'page' : undefined} className={page === p ? 'selected' : ''} onClick={() => navigate(p)}>
@@ -158,7 +158,7 @@ export default function Workspace({ user, logout, onUserChange, logoutBusy = fal
 
           {page === 'Mi perfil' ? 
           <MiPerfilPage onSaved={onUserChange} /> : page === 'Usuarios' ? 
-          <UsuarioPage /> : page === 'Reportes' ? <ReportesPage /> : page === 'Equipos' ? 
+          <UsuarioPage /> : page === 'Reportes' ? <ReportesPage user={user} /> : page === 'Equipos' ? 
           <CatalogoPage administrador={user.administrador} onReservar={id => { setSelectedObject(id); navigate('Reservas') }} /> : page === 'Reservas' ? 
           <ReservasPage user={user} objetoInicial={selectedObject} onEntregar={id => { setSelectedReserva(id); navigate('Préstamos') }} /> : page === 'Préstamos' ? 
           <PrestamosPage user={user} reservaInicial={selectedReserva} onReservas={() => navigate('Reservas')} /> : 

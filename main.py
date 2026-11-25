@@ -23,8 +23,11 @@ from backend.prestamos.presentation.prestamo_routes import router as prestamo_ro
 
 from backend.control.presentation.reporte_routes import router as reporte_router
 
+from backend.control.presentation.credibilidad_routes import router as credibilidad_router
+
 from backend.usuarios.infraestructure.seed_roles import seed_roles
 
+from backend.control.infraestructure.models import MovimientoCredibilidadModel
 
 
 
@@ -78,6 +81,7 @@ app.include_router(categoria_router, dependencies=[Depends(usuario_actual)])
 app.include_router(reserva_router, dependencies=[Depends(usuario_actual)])
 app.include_router(prestamo_router, dependencies=[Depends(usuario_actual)])
 app.include_router(reporte_router, dependencies=[Depends(usuario_actual)])
+app.include_router(credibilidad_router, dependencies=[Depends(usuario_actual)])
 
 
 @app.get("/")

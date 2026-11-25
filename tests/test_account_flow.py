@@ -158,7 +158,7 @@ class AccountFlowTests(unittest.TestCase):
             signed_in = self.call(account_client, '/auth/login',
                                   dict(correo=payload['correo'], password=payload['password']))
             self.assertEqual(signed_in['id'], created['id'])
-            self.assertEqual(signed_in['administrador'], kind == 'Administrativo')
+
             with self.assertRaises(HTTPError) as error:
                 self.call(admin, '/usuarios/', dict(payload, correo=f'duplicate-{payload["correo"]}'))
             self.assertEqual(error.exception.code, 409)

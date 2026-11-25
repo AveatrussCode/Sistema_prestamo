@@ -4,6 +4,8 @@ import { obtenerPerfil, guardarPerfil, cambiarPassword } from '../api/auth'
 import type { MiPerfil, SessionUser } from '../api/auth'
 import { subirConstancia, constanciaUrl } from './usuarioApi'
 import './perfil.css'
+import CredibilidadPanel from './CredibilidadPanel'
+
 
 export default function MiPerfilPage({ onSaved }: { onSaved: (user: SessionUser) => void }) {
   // Estados del perfil
@@ -117,6 +119,7 @@ export default function MiPerfilPage({ onSaved }: { onSaved: (user: SessionUser)
                 </>
               )}
             </dl>
+            {!profile.administrador && <CredibilidadPanel />}
           </aside>
 
           {/* --- COLUMNA DERECHA: Formularios --- */}

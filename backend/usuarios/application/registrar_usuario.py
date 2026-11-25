@@ -1,13 +1,14 @@
 from backend.usuarios.domain.usuario import Estudiante, Profesor, Administrativo, EstadoUsuario
 from backend.usuarios.domain.rol import NombreRol
 from backend.usuarios.infraestructure.usuario_repository import RolRepository
+from backend.control.domain.politica_credibilidad import escala
 
 
 # Regla de negocio: qué rol por defecto le toca a cada tipo
 ROL_POR_DEFECTO = {
     "Estudiante": NombreRol.USUARIO_BASICO.value,
     "Profesor": NombreRol.USUARIO_BASICO.value,
-    "Administrativo": NombreRol.ADMIN.value,
+    "Administrativo": NombreRol.USUARIO_BASICO.value,
 }
 
 
@@ -26,7 +27,7 @@ class RegistrarUsuarioUseCase:
 
         tipo = datos_usuario.get("tipo")
         estado_inicial = EstadoUsuario.ACTIVO
-        credibilidad_inicial = 100.0 if tipo == "Estudiante" else 200.0
+        credibilidad_inicial = escala("estudiante" if tipo == "Estudiante" else "profesor").inicio
 
         # Determinar el rol a asignar (automático según el tipo)
         rol_asignado_id = self._obtener_rol_por_defecto(tipo)

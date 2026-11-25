@@ -42,7 +42,7 @@ export default function Workspace({ user, logout, onUserChange, logoutBusy = fal
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const dateLabel = new Intl.DateTimeFormat('es-PE', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date())
-  const role = user.administrador ? 'Administrativo' : user.tipo === 'profesor' ? 'Profesor' : 'Estudiante'
+  const role = user.administrador ? 'Administrador' : user.tipo === 'profesor' ? 'Profesor' : user.tipo === 'administrativo' ? 'Administrativo' : 'Estudiante'
   const label = (p: Page) => p === 'Préstamos' && !user.administrador ? 'Mis préstamos' : p === 'Resumen' ? 'Inicio' : p === 'Equipos' ? 'Catálogo' : p === 'Reservas' && !user.administrador ? 'Mis reservas' : p === 'Reportes' && !user.administrador ? 'Mi reporte' : p
   const load = useCallback(() => {
     return Promise.all([user.administrador ? listarUsuarios() : Promise.resolve([]), listarObjetos(), listarReservas()])

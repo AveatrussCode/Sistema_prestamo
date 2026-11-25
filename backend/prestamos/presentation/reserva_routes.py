@@ -12,6 +12,8 @@ from backend.prestamos.infraestructure.sql_reserva_repository import SqlReservaR
 from backend.recursos.infraestructure.sql_objeto_repository import SqlObjetoRepository
 from backend.recursos.infraestructure.models import ObjetoModel
 from backend.usuarios.infraestructure.usuario_repository import UsuarioRepository
+from backend.control.application.credibilidad_service import CredibilidadService
+from backend.control.infraestructure.sql_credibilidad_repository import SqlCredibilidadRepository
 
 router = APIRouter(prefix="/reservas", tags=["Reservas"])
 
@@ -25,8 +27,7 @@ class ReservaCreate(BaseModel):
 
 
 def get_reserva_service(db: Session = Depends(get_db)) -> ReservaService:
-    return ReservaService(SqlReservaRepository(db), SqlObjetoRepository(db), UsuarioRepository(db))
-
+        return ReservaService(SqlReservaRepository(db), SqlObjetoRepository(db), UsuarioRepository(db),CredibilidadService(SqlCredibilidadRepository(db)))
 
 def _a_dict(r: Reserva, db: Session = None) -> dict:
     tiene_imagen = False
@@ -91,7 +92,7 @@ def confirmar_reserva(id_reserva: int, db: Session = Depends(get_db), servicio: 
 @router.post("/{id_reserva}/cancelar")
 def cancelar_reserva(id_reserva: int, actor=Depends(usuario_actual), db: Session = Depends(get_db), servicio: ReservaService = Depends(get_reserva_service)):
     comprobar_acceso(actor, servicio.obtener(id_reserva))
-    return _a_dict(servicio.cancelar(id_reserva), db)
+    return _a_dict(servicio.cancelar(id_reserva, sancionar=not es_admin(actor)), db)
 
 
 @router.post("/{id_reserva}/finalizar", dependencies=[Depends(administrador)])

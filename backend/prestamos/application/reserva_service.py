@@ -7,16 +7,18 @@ from backend.prestamos.domain.reserva_repository import ReservaRepository
 from backend.recursos.domain.objeto_repository import ObjetoRepository
 from backend.shared.errors import ConflictError, DomainError, NotFoundError
 from backend.usuarios.domain.usuario import EstadoUsuario
+from backend.prestamos.application.ports import CredibilidadPort, UsuarioLookup
 
 
 class ReservaService:
     """Casos de uso de Reserva (RF17, RF18). Aquí viven las REGLAS que involucran varias cosas."""
 
     def __init__(self, reservas: ReservaRepository, objetos: ObjetoRepository,
-                 usuarios: UsuarioLookup):
+                 usuarios: UsuarioLookup, credibilidad: Optional[CredibilidadPort] = None):
         self._reservas = reservas
         self._objetos = objetos
         self._usuarios = usuarios
+        self._credibilidad = credibilidad
 
     # ---------- crear ----------
 
@@ -43,6 +45,10 @@ class ReservaService:
             raise NotFoundError(f"Objeto {objeto_id} no existe.")
         if not objeto.es_reservable():
             raise DomainError("El objeto no se puede reservar (dañado, no disponible o dado de baja).")
+        
+        # 3.5) La credibilidad del usuario limita duración, cantidad y anticipación
+        if self._credibilidad:
+            self._credibilidad.validar_reserva(usuario_id, fecha_inicio, fecha_fin, hoy)
 
         # 4) Las fechas no pueden cruzarse con otra reserva activa del mismo objeto
         if self._reservas.existe_solapada(objeto_id, fecha_inicio, fecha_fin):
@@ -78,10 +84,15 @@ class ReservaService:
         reserva.confirmar()
         return self._reservas.guardar(reserva)
 
-    def cancelar(self, id_reserva: int) -> Reserva:
+    def cancelar(self, id_reserva: int, sancionar: bool = True, hoy: Optional[date] = None) -> Reserva:
+        hoy = hoy or date.today()
         reserva = self.obtener(id_reserva)
+        era_confirmada = reserva.estado == EstadoReserva.CONFIRMADA
         reserva.cancelar()
-        return self._reservas.guardar(reserva)
+        guardada = self._reservas.guardar(reserva)
+        if sancionar and era_confirmada and hoy >= reserva.fecha_inicio and self._credibilidad:
+            self._credibilidad.sancionar_cancelacion_tardia(reserva.usuario_id, id_reserva)
+        return guardada
 
     def finalizar(self, id_reserva: int) -> Reserva:
         reserva = self.obtener(id_reserva)
@@ -89,12 +100,16 @@ class ReservaService:
         return self._reservas.guardar(reserva)
 
     def marcar_vencidas(self, hoy: Optional[date] = None) -> list[Reserva]:
-        """Pasa a VENCIDA toda reserva activa cuya fecha_fin ya pasó. Devuelve las que cambió."""
         hoy = hoy or date.today()
         vencidas = []
-        for estado in (EstadoReserva.PENDIENTE, EstadoReserva.CONFIRMADA):
-            for reserva in self._reservas.listar(estado=estado):
-                if reserva.esta_vencida(hoy):
-                    reserva.marcar_vencida()
-                    vencidas.append(self._reservas.guardar(reserva))
+        for reserva in self._reservas.listar(estado=EstadoReserva.PENDIENTE):
+            if hoy > reserva.fecha_inicio:            # nadie la confirmó y ya empezó: sin sanción
+                reserva.marcar_vencida()
+                vencidas.append(self._reservas.guardar(reserva))
+        for reserva in self._reservas.listar(estado=EstadoReserva.CONFIRMADA):
+            if reserva.no_recogida(hoy) or reserva.esta_vencida(hoy):
+                reserva.marcar_vencida()
+                vencidas.append(self._reservas.guardar(reserva))
+                if self._credibilidad:
+                    self._credibilidad.sancionar_no_recogida(reserva.usuario_id, reserva.id_reserva)
         return vencidas

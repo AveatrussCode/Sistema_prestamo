@@ -19,6 +19,8 @@ from backend.usuarios.application.validar_institucional import validador_institu
 from backend.shared.mailer import (
     correo_solicitud_recibida, correo_aprobacion, correo_rechazo
 )
+from backend.control.domain.politica_credibilidad import escala
+
 import os
 from pathlib import Path
 
@@ -215,7 +217,7 @@ async def registrar(
         user = EstudianteModel(
             nombre=nombre, correo_institucional=correo, codigo_institucional=codigo,
             tipo='estudiante', estado=EstadoUsuario.PENDIENTE_APROBACION,
-            credibilidad=100, rol_id=rol_basico.id,
+            credibilidad=escala('estudiante').inicio, rol_id=rol_basico.id,
             carrera='Ciencia de la Computación', matricula='',
             fecha_solicitud=datetime.now(timezone.utc).replace(tzinfo=None),
             verificado_externo=valido,
@@ -224,7 +226,7 @@ async def registrar(
         user = ProfesorModel(
             nombre=nombre, correo_institucional=correo, codigo_institucional=codigo,
             tipo='profesor', estado=EstadoUsuario.PENDIENTE_APROBACION,
-            credibilidad=200, rol_id=rol_basico.id,
+            credibilidad=escala('profesor').inicio, rol_id=rol_basico.id,
             departamento='Ciencia de la Computación', especialidad=especialidad.strip(),
             fecha_solicitud=datetime.now(timezone.utc).replace(tzinfo=None),
             verificado_externo=valido,
@@ -235,7 +237,7 @@ async def registrar(
         user = AdministrativoModel(
             nombre=nombre, correo_institucional=correo, codigo_institucional=codigo,
             tipo='administrativo', estado=EstadoUsuario.PENDIENTE_APROBACION,
-            credibilidad=200, rol_id=rol_basico.id,
+            credibilidad=escala('administrativo').inicio, rol_id=rol_basico.id,
             departamento='Ciencia de la Computación',
             area=area.strip(), cargo=cargo.strip(),
             fecha_solicitud=datetime.now(timezone.utc).replace(tzinfo=None),

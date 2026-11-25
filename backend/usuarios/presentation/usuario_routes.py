@@ -9,10 +9,7 @@ from backend.database import get_db
 from backend.usuarios.presentation.auth_routes import hash_password, administrador, CuentaModel, validar_correo_unsa
 from backend.usuarios.application.registrar_usuario import RegistrarUsuarioUseCase
 from backend.usuarios.application.asignar_rol import AsignarRolUseCase
-from backend.usuarios.application.gestionar_perfil import (
-    GestionarPerfilUseCase,
-    GestionarCredibilidadUseCase,
-)
+from backend.usuarios.application.gestionar_perfil import GestionarPerfilUseCase
 from backend.usuarios.infraestructure.usuario_repository import (
     UsuarioRepository,
     RolRepository,
@@ -20,6 +17,10 @@ from backend.usuarios.infraestructure.usuario_repository import (
 from backend.shared.mailer import correo_aprobacion, correo_rechazo
 from backend.usuarios.domain.usuario import EstadoUsuario
 from backend.usuarios.infraestructure.models import UsuarioModel
+from backend.control.application.credibilidad_service import CredibilidadService
+from backend.control.presentation.credibilidad_routes import get_credibilidad_service
+
+
 
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
 
@@ -284,39 +285,15 @@ def asignar_rol(id_usuario: int, request: AsignarRolRequest, db: Session = Depen
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.put("/{id_usuario}/credibilidad/ajustar")
-def ajustar_credibilidad(
-    id_usuario: int,
-    request: AjustarCredibilidadRequest,
-    db: Session = Depends(get_db),
-):
-    repo = UsuarioRepository(db)
-    caso_uso = GestionarCredibilidadUseCase(repo)
-    try:
-        usuario = caso_uso.ajustar_credibilidad(id_usuario, request.delta, request.motivo)
-        return {
-            "mensaje": "Credibilidad ajustada exitosamente",
-            "id": usuario.id,
-            "credibilidad": usuario.credibilidad,
-            "motivo": request.motivo,
-        }
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+def ajustar_credibilidad(id_usuario: int, request: AjustarCredibilidadRequest, actor=Depends(administrador),
+                         servicio: CredibilidadService = Depends(get_credibilidad_service)):
+    m = servicio.ajustar(id_usuario, actor.id, request.motivo, delta=request.delta)
+    return {"mensaje": "Credibilidad ajustada exitosamente", "id": id_usuario,
+            "credibilidad": m.valor_despues, "motivo": request.motivo}
 
 @router.put("/{id_usuario}/credibilidad")
-def establecer_credibilidad(
-    id_usuario: int,
-    request: EstablecerCredibilidadRequest,
-    db: Session = Depends(get_db),
-):
-    repo = UsuarioRepository(db)
-    caso_uso = GestionarCredibilidadUseCase(repo)
-    try:
-        usuario = caso_uso.establecer_credibilidad(id_usuario, request.valor, request.motivo)
-        return {
-            "mensaje": "Credibilidad establecida exitosamente",
-            "id": usuario.id,
-            "credibilidad": usuario.credibilidad,
-            "motivo": request.motivo,
-        }
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+def establecer_credibilidad(id_usuario: int, request: EstablecerCredibilidadRequest, actor=Depends(administrador),
+                            servicio: CredibilidadService = Depends(get_credibilidad_service)):
+    m = servicio.ajustar(id_usuario, actor.id, request.motivo, valor=request.valor)
+    return {"mensaje": "Credibilidad establecida exitosamente", "id": id_usuario,
+            "credibilidad": m.valor_despues, "motivo": request.motivo}

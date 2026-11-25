@@ -12,6 +12,8 @@ from backend.recursos.infraestructure.models import ObjetoModel
 from backend.shared.errors import ConflictError, DomainError, NotFoundError
 from backend.usuarios.domain.usuario import EstadoUsuario
 from backend.usuarios.infraestructure.models import UsuarioModel
+from backend.control.application.credibilidad_service import CredibilidadService
+from backend.control.infraestructure.sql_credibilidad_repository import SqlCredibilidadRepository
 
 
 class PrestamoService:
@@ -32,6 +34,7 @@ class PrestamoService:
         usuario = self.db.get(UsuarioModel, reserva.usuario_id)
         if usuario is None or usuario.estado != EstadoUsuario.ACTIVO:
             raise DomainError('El usuario debe estar activo para recibir el equipo.')
+            CredibilidadService(SqlCredibilidadRepository(self.db)).validar_entrega(reserva.usuario_id, hoy)
         equipo = self.db.get(ObjetoModel, reserva.objeto_id)
         if equipo is None:
             raise NotFoundError('El equipo ya no existe.')
@@ -99,6 +102,9 @@ class PrestamoService:
                 raise ConflictError('El equipo no figura como prestado. Revisa su inventario antes de registrar la devolución.')
             self.db.add(DevolucionModel(prestamo_id=prestamo_id, fecha_devolucion=hoy,
                 estado_fisico=estado_fisico, observaciones=observaciones, recibido_por=administrador_id))
+            CredibilidadService(SqlCredibilidadRepository(self.db)).registrar_devolucion(
+                modelo.usuario_id, prestamo_id, modelo.fecha_inicio, modelo.fecha_devolucion_prevista,
+                hoy, estado_fisico, confirmar=False)
             self.db.commit()
             self.db.refresh(modelo)
             return modelo
